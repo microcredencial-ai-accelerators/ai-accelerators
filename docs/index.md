@@ -45,10 +45,10 @@ def read_labels(filename):
     return labels
 
 # Read files
-train_data = read_images("./../../../data/train-images.idx3-ubyte")
-train_labels = read_labels("./../../../data/train-labels.idx1-ubyte")
-test_data = read_images("./../../../data/t10k-images.idx3-ubyte")
-test_labels = read_labels("./../../../data/t10k-labels.idx1-ubyte")
+train_data = read_images("data/train-images.idx3-ubyte")
+train_labels = read_labels("data/train-labels.idx1-ubyte")
+test_data = read_images("data/t10k-images.idx3-ubyte")
+test_labels = read_labels("data/t10k-labels.idx1-ubyte")
 ```
 
 ### Display relevant dataset information
