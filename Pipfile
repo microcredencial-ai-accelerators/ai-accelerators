@@ -5,6 +5,7 @@ name = "pypi"
 
 [packages]
 matplotlib = "*"
+tensorflow = "*"
 
 [dev-packages]
 ipykernel = "*"
