@@ -10,8 +10,10 @@ TensorFlow provides a simple and efficient way to load the MNIST dataset directl
 
 Make sure you have the following packages installed:
 
-- `tensorflow`
+- `tensorflow` 2.11
 - `tensorflow-datasets` (optional, for other datasets)
+- `keras` 2.11
+- `numpy` <2
 
 You can install them using pip:
 
@@ -193,20 +195,22 @@ Output:
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓
 ┃ Layer (type)                    ┃ Output Shape           ┃       Param # ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩
-│ flatten_9 (Flatten)             │ (None, 784)            │             0 │
+│ flatten (Flatten)               │ (None, 784)            │             0 │
 ├─────────────────────────────────┼────────────────────────┼───────────────┤
-│ dense_30 (Dense)                │ (None, 128)            │       100,480 │
+│ dense (Dense)                   │ (None, 128)            │       100,480 │
 ├─────────────────────────────────┼────────────────────────┼───────────────┤
-│ dense_31 (Dense)                │ (None, 64)             │         8,256 │
+│ re_lu (ReLU)                    │ (None, 128)            │             0 │
 ├─────────────────────────────────┼────────────────────────┼───────────────┤
-│ dense_32 (Dense)                │ (None, 32)             │         2,080 │
+│ dense_1 (Dense)                 │ (None, 32)             │         4,128 │
 ├─────────────────────────────────┼────────────────────────┼───────────────┤
-│ dense_33 (Dense)                │ (None, 16)             │           528 │
+│ re_lu_1 (ReLU)                  │ (None, 32)             │             0 │
 ├─────────────────────────────────┼────────────────────────┼───────────────┤
-│ dense_34 (Dense)                │ (None, 10)             │           170 │
+│ dense_2 (Dense)                 │ (None, 10)             │           330 │
+├─────────────────────────────────┼────────────────────────┼───────────────┤
+│ Softmax1 (Activation)           │ (None, 10)             │             0 │
 └─────────────────────────────────┴────────────────────────┴───────────────┘
- Total params: 111,514 (435.60 KB)
- Trainable params: 111,514 (435.60 KB)
+ Total params: 104,938 (409.91 KB)
+ Trainable params: 104,938 (409.91 KB)
  Non-trainable params: 0 (0.00 B)
 ```
 ### Train model
