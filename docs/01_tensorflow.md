@@ -174,6 +174,7 @@ plt.axis('off')
 plt.show()
 ```
 Output:
+
 ![MNIST Prediction](./assets/pred_1000.png)
 
 
