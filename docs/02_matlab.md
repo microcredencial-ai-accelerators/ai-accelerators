@@ -60,3 +60,94 @@ for i = 1:10
 end
 sgtitle('First 10 MNIST Training Images');
 ```
+
+## Defining model with MATLAB
+[MATLAB Deep Learning Toolbox](https://mathworks.com/products/deep-learning.html)
+
+### Fully Connected (FC)
+```matlab
+layers = [
+        imageInputLayer([28 28 1]) % Tamaño de entrada
+        flattenLayer
+        fullyConnectedLayer(128)
+        reluLayer
+        fullyConnectedLayer(32)
+        reluLayer
+        fullyConnectedLayer(numClasses)
+        softmaxLayer
+        classificationLayer
+    ];
+```
+### Convolutional Neural Network (CNN)
+```matlab
+layers = [
+        imageInputLayer([28 28 1]) % Tamaño de entrada
+        flattenLayer
+        fullyConnectedLayer(128)
+        reluLayer
+        fullyConnectedLayer(32)
+        reluLayer
+        fullyConnectedLayer(numClasses)
+        softmaxLayer
+        classificationLayer
+    ];
+```
+
+(Optional) Use ``deepNetworkDesigner`` [Deep Network Designer](https://mathworks.com/help/deeplearning/gs/get-started-with-deep-network-designer.html)
+
+
+## Create MATLAB Dataset
+```matlab
+% Reshape [28, 28, 1, 60000] and single datatype
+train_data_4D = reshape(train_data, 28, 28, 1, []);
+train_data_4D = single(train_data_4D);
+train_labels_cat = categorical(train_labels);
+trainDataset = augmentedImageDatastore([28 28 1], train_data_4D, train_labels_cat);
+```
+
+## Training
+Training options:
+```matlab
+options = trainingOptions('adam', ...
+    'MaxEpochs', 5, ...
+    'MiniBatchSize', 64, ...
+    'Plots', 'training-progress', ...
+    'Verbose', false);
+```
+Train;
+```matlab
+net = trainNetwork(trainDataset, layers, options);
+```
+Training progress:
+
+![Training Progress](./assets/matlab-dl-training-progress.png)
+
+Show NN layers and weights:
+```matlab
+info = analyzeNetwork(net);
+```
+![Analyze NN](./assets/matlab-dl-nn-analyze.png)
+
+## Evaluate model
+Crate test dataset:
+```matlab
+% Test dataset
+test_data = reshape(test_data, 28, 28, 1, []);
+test_data = single(test_data);
+test_labels_cat = categorical(test_labels);
+testDataset = augmentedImageDatastore([28 28 1], test_data);
+```
+Predict from test dataset:
+```matlab
+predicted_labels = classify(net, testDataset);
+```
+
+Compute accuracy:
+```matlab
+% Accuracy
+accuracy = mean(predicted_labels == test_labels_cat);
+fprintf('Test Accuracy: %.2f%%\n', accuracy * 100);
+```
+
+## Estimate time per inference
+(Task)
