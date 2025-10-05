@@ -1,4 +1,4 @@
-# MATLAB
+# Neural Networl definition and training with MATLAB
 ## [Back to index](index.md)
 
 ## Read MNIST dataset with MATLAB
@@ -122,7 +122,7 @@ Training progress:
 
 ![Training Progress](./assets/matlab-dl-training-progress.png)
 
-Show NN layers and weights:
+Show NN layers and weights with [``analyzeNetwork``](https://es.mathworks.com/help/deeplearning/ref/analyzenetwork.html):
 ```matlab
 info = analyzeNetwork(net);
 ```
