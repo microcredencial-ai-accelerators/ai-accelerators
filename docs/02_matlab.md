@@ -151,3 +151,46 @@ fprintf('Test Accuracy: %.2f%%\n', accuracy * 100);
 
 ## Estimate time per inference
 (Task)
+
+## Load trainded model from TensorFlow
+Use the Keras ``H5`` format and load it with ``importKerasNetwork``:
+```matlab
+net = importKerasNetwork('saved_models/mnist_cnn/model.h5');
+```
+Visualize and modify the imported NN. Output layer must be replaced in order to meet actual classification:
+```matlab
+%% Modify NN 
+% Classification output
+correctClasses = string(0:9);
+
+
+% Get original layers
+layers = net.Layers;
+
+newClassificationLayer = classificationLayer('Classes', categorical(correctClasses), 'Name', 'output');
+
+% Replace output layer
+layers(end) = newClassificationLayer;
+
+% Assemply Network with modified output layer
+net = assembleNetwork(layers);
+info = analyzeNetwork(net)
+```
+Evaluate the model:
+
+```matlab
+
+%% Evaluate moded
+
+% Test dataset
+test_data = reshape(test_data, 28, 28, 1, []);
+test_data = single(test_data);
+test_labels_cat = categorical(test_labels);
+
+% Predict
+numSamples = size(test_data, 4);
+tic;
+predicted_labels = classify(net, test_data);
+% predicted_labels = predict(net, testDataset);
+inference_time = toc;
+```
