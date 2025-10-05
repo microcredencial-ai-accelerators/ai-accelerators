@@ -1,6 +1,8 @@
-# TensorFlow
+# # Neural Networl definition and training with Python and TensorFlow
 ## [Back to index](index.md)
 
+Requirements:
+- Python3
 
 TensorFlow provides a simple and efficient way to load the MNIST dataset directly in Python, without needing to manually download and parse the raw IDX files.
 
@@ -8,21 +10,84 @@ TensorFlow provides a simple and efficient way to load the MNIST dataset directl
 
 Make sure you have the following packages installed:
 
-- `tensorflow`
+- `tensorflow` 2.11
 - `tensorflow-datasets` (optional, for other datasets)
+- `keras` 2.11
+- `numpy` <2
 
 You can install them using pip:
 
 ```pip install tensorflow tensorflow-datasets```
 
-TensorFlow provides a simple method for Python to use the MNIST dataset
 
 
-### Reading MNIST dataset from TF
+### Reading MNIST dataset
+#### A) Reading MNIST from file
+
+Import all the necessary packages:
+```python
+import numpy as np
+import struct
+import matplotlib.pyplot as plt
+```
+Reading MNIST dataset:
+```python
+# Function to read MNIST data
+def read_images(filename):
+    with open(filename, 'rb') as f:
+        magic, num, rows, cols = struct.unpack(">IIII", f.read(16))
+        images = np.frombuffer(f.read(), dtype=np.uint8).reshape(num, rows, cols)
+    return images
+
+# Function to read MNIST labels
+def read_labels(filename):
+    with open(filename, 'rb') as f:
+        magic, num = struct.unpack(">II", f.read(8))
+        labels = np.frombuffer(f.read(), dtype=np.uint8)
+    return labels
+
+# Read files
+train_data = read_images("data/train-images.idx3-ubyte")
+train_labels = read_labels("data/train-labels.idx1-ubyte")
+test_data = read_images("data/t10k-images.idx3-ubyte")
+test_labels = read_labels("data/t10k-labels.idx1-ubyte")
+```
+
+#### B) Reading MNIST dataset from TF
+TensorFlow provides a simple method for Python to use the MNIST dataset.
+
 ```python
 import tensorflow as tf
 (train_data, train_labels), (test_data, test_labels) = tf.keras.datasets.mnist.load_data()
 ```
+#### Display relevant dataset information
+```python
+print('Train data length: ', len(train_data), 'images')
+print('Train labels length: ', len(train_labels), 'labels')
+print('Test data length: ', len(test_data), 'images')
+print('Test labels length: ', len(test_labels), 'labels')
+print('Data format: ', train_data[0].shape )
+print('Train data shape:', train_data.shape)
+print('Test data shape:', test_data.shape)
+print('First label: ', train_labels[0])
+print('Pixel value range:', train_data.min(), 'to', train_data.max())
+print('Unique labels:', np.unique(train_labels))
+```
+
+#### Display 10 MNIST training images with their labels
+```python
+# Show 10 MNIST training images with their labels
+fig, axes = plt.subplots(2, 5, figsize=(10, 5))
+for i, ax in enumerate(axes.flat):
+    ax.imshow(train_data[i], cmap='gray')
+    ax.set_title(f"Label: {train_labels[i]}")
+    ax.axis('off')
+plt.tight_layout()
+plt.show()
+```
+![MNIST Example](./assets/mnist_10_examples.png)
+
+#### Normalize data
 Data must be normalized in range 0 to 1 (float):
 ```python
 def normalize_img(image, label):
@@ -130,20 +195,22 @@ Output:
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┓
 ┃ Layer (type)                    ┃ Output Shape           ┃       Param # ┃
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩
-│ flatten_9 (Flatten)             │ (None, 784)            │             0 │
+│ flatten (Flatten)               │ (None, 784)            │             0 │
 ├─────────────────────────────────┼────────────────────────┼───────────────┤
-│ dense_30 (Dense)                │ (None, 128)            │       100,480 │
+│ dense (Dense)                   │ (None, 128)            │       100,480 │
 ├─────────────────────────────────┼────────────────────────┼───────────────┤
-│ dense_31 (Dense)                │ (None, 64)             │         8,256 │
+│ re_lu (ReLU)                    │ (None, 128)            │             0 │
 ├─────────────────────────────────┼────────────────────────┼───────────────┤
-│ dense_32 (Dense)                │ (None, 32)             │         2,080 │
+│ dense_1 (Dense)                 │ (None, 32)             │         4,128 │
 ├─────────────────────────────────┼────────────────────────┼───────────────┤
-│ dense_33 (Dense)                │ (None, 16)             │           528 │
+│ re_lu_1 (ReLU)                  │ (None, 32)             │             0 │
 ├─────────────────────────────────┼────────────────────────┼───────────────┤
-│ dense_34 (Dense)                │ (None, 10)             │           170 │
+│ dense_2 (Dense)                 │ (None, 10)             │           330 │
+├─────────────────────────────────┼────────────────────────┼───────────────┤
+│ Softmax1 (Activation)           │ (None, 10)             │             0 │
 └─────────────────────────────────┴────────────────────────┴───────────────┘
- Total params: 111,514 (435.60 KB)
- Trainable params: 111,514 (435.60 KB)
+ Total params: 104,938 (409.91 KB)
+ Trainable params: 104,938 (409.91 KB)
  Non-trainable params: 0 (0.00 B)
 ```
 ### Train model
