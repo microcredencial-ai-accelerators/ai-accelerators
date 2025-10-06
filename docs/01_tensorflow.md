@@ -1,4 +1,4 @@
-# # Neural Networl definition and training with Python and TensorFlow
+# # Neural Network definition and training with Python and TensorFlow
 ## [Back to index](index.md)
 
 Requirements:
