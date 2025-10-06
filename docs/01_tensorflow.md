@@ -249,7 +249,8 @@ Output:
 Save the trained model with trained weights to use it afterwards:
 ```python
 OUTPUT_PATH = Path(f'./../../../saved_model/mnist_{model_type}')
-model.save( OUTPUT_PATH / 'model.h5' )
+model.save(OUTPUT_PATH / 'SavedModel')
+model.save( OUTPUT_PATH / 'model.h5', save_format='h5')
 ```
 
 
