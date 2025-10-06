@@ -1,8 +1,8 @@
-# # Neural Networl definition and training with Python and TensorFlow
+# # Neural Network definition and training with Python and TensorFlow
 ## [Back to index](index.md)
 
 Requirements:
-- Python3
+- Python3 >=3.7
 
 TensorFlow provides a simple and efficient way to load the MNIST dataset directly in Python, without needing to manually download and parse the raw IDX files.
 
@@ -249,7 +249,8 @@ Output:
 Save the trained model with trained weights to use it afterwards:
 ```python
 OUTPUT_PATH = Path(f'./../../../saved_model/mnist_{model_type}')
-model.save( OUTPUT_PATH / 'model.h5' )
+model.save(OUTPUT_PATH / 'SavedModel')
+model.save( OUTPUT_PATH / 'model.h5', save_format='h5')
 ```
 
 

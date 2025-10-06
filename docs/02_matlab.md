@@ -1,4 +1,4 @@
-# Neural Networl definition and training with MATLAB
+# Neural Network definition and training with MATLAB
 ## [Back to index](index.md)
 
 ## Read MNIST dataset with MATLAB
