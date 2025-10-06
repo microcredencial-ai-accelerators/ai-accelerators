@@ -2,7 +2,7 @@
 ## [Back to index](index.md)
 
 Requirements:
-- Python3
+- Python3 >=3.7
 
 TensorFlow provides a simple and efficient way to load the MNIST dataset directly in Python, without needing to manually download and parse the raw IDX files.
 
