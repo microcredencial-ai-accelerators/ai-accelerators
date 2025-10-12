@@ -13,6 +13,10 @@ from models.cnn import build_cnn_model
 # Read MNIST database
 (train_data, train_labels), (test_data, test_labels) = tf.keras.datasets.mnist.load_data()
 
+# One hot
+train_labels = tf.keras.utils.to_categorical(train_labels, num_classes=10)
+test_labels = tf.keras.utils.to_categorical(test_labels, num_classes=10)
+
 # %%
 # Peprocessing (Normalization)
 print('Raw data pixel value range:', train_data.min(), 'to', train_data.max())
@@ -38,7 +42,7 @@ else:
 # %%
 # Training parameters
 OPTIMIZER = 'adam'
-LOSS_FUNCTION = 'sparse_categorical_crossentropy'
+LOSS_FUNCTION = 'categorical_crossentropy'
 METRICS = ['accuracy']
 EPOCHS = 5
 
@@ -68,7 +72,7 @@ print(f"Time per inferecne: {elapsed_time/len(test_data)*1000:.4f} ms")
 index = 1000
 import matplotlib.pyplot as plt
 plt.imshow(test_data[index].numpy().squeeze(), cmap='gray')
-plt.title(f"Predicted: {np.argmax(predictions[index])}, Label: {test_labels[index]}")
+plt.title(f"Predicted: {np.argmax(predictions[index])}, Label: {np.argmax(test_labels[index])}")
 plt.axis('off')
 plt.tight_layout()
 plt.show()

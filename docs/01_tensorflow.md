@@ -87,6 +87,17 @@ plt.show()
 ```
 ![MNIST Example](./assets/mnist_10_examples.png)
 
+#### One Hot
+In classification tasks, it's common to use one-hot encoding to represent class labels. This approach transforms each label into a vector of probabilities, where the correct class is marked with a 1 and all others with 0. For example, if the input image represents the digit 3, the label is encoded as:
+```
+[0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+```
+To encode labels to one-hot with TensorFlow utils:
+```python
+train_labels = tf.keras.utils.to_categorical(train_labels, num_classes=10)
+test_labels = tf.keras.utils.to_categorical(test_labels, num_classes=10)
+```
+
 #### Normalize data
 Data must be normalized in range 0 to 1 (float):
 ```python
@@ -168,14 +179,14 @@ model = tf.keras.Sequential([
 ## Training
 When training a neural network, several key components define how the model learns and improves:
 - Optimizer: An optimizer is an algorithm that adjusts the model’s weights to minimize the loss function. It determines how the model updates its parameters during training. Common optimizers include SGD (Stochastic Gradient Descent), Adam, and RMSprop. Each has its own strategy for navigating the loss landscape efficiently. [Adam](https://keras.io/api/optimizers/adam/) (Adaptive Moment Estimation) is used in this example
-- [Loss function](https://keras.io/api/losses/): The loss function measures how far the model’s predictions are from the actual target values. It provides a signal that the optimizer uses to improve the model. The choice of loss function depends on the type of problem (e.g., classification, regression). For example, [``sparse_categorical_crossentropy``](https://keras.io/api/losses/probabilistic_losses/#sparsecategoricalcrossentropy-class) is used for multi-class classification with integer labels.
+- [Loss function](https://keras.io/api/losses/): The loss function measures how far the model’s predictions are from the actual target values. It provides a signal that the optimizer uses to improve the model. The choice of loss function depends on the type of problem (e.g., classification, regression). For example, [``sparse_categorical_crossentropy``](https://keras.io/api/losses/probabilistic_losses/#sparsecategoricalcrossentropy-class) is used for multi-class classification with integer labels, whereas [``categorical_crossentropy``](https://keras.io/api/losses/probabilistic_losses/#categoricalcrossentropy-class) is used for multi-class classification when labels are one-hot encoded vectors.
 - [Metrics](https://keras.io/api/metrics/): Metrics are used to evaluate the performance of the model during training and testing. Unlike the loss function, metrics are not used to update the model but to monitor its progress. Accuracy is a common metric for classification tasks. [Accuracy](https://keras.io/api/metrics/accuracy_metrics/#accuracy-class) is used in this example.
 - Epochs: An epoch is one complete pass through the entire training dataset. Training for multiple epochs allows the model to learn patterns more effectively, but too many epochs can lead to overfitting.
 
 ### Compile the TensorFlow model with the training parameters
 ```python
 OPTIMIZER = 'adam'
-LOSS_FUNCTION = 'sparse_categorical_crossentropy'
+LOSS_FUNCTION = 'categorical_crossentropy'
 METRICS = ['accuracy']
 EPOCS = 5
 
@@ -236,7 +247,7 @@ predictions = model.predict(test_data)
 index = 1000
 import matplotlib.pyplot as plt
 plt.imshow(test_data[index].numpy().squeeze(), cmap='gray')
-plt.title(f"Predicted: {np.argmax(predictions[index])}, Label: {test_labels[index]}")
+plt.title(f"Predicted: {np.argmax(predictions[index])}, Label: {np.argmax(test_labels[index])}")
 plt.axis('off')
 plt.show()
 ```
