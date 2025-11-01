@@ -7,7 +7,7 @@ def build_fc_model(input_shape=(28, 28, 1), num_classes=10):
         tf.keras.layers.ReLU(),
         tf.keras.layers.Dense(32),
         tf.keras.layers.ReLU(),
-        tf.keras.layers.Dense(num_classes,activation='softmax'),
+        tf.keras.layers.Dense(num_classes),
         tf.keras.layers.Activation(tf.nn.softmax, name="Softmax1")
     ])
     return model
