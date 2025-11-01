@@ -1,4 +1,4 @@
-# # Neural Network definition and training with Python and TensorFlow
+# Neural Network definition and training with Python and TensorFlow
 ## [Back to index](index.md)
 
 Requirements:
@@ -234,7 +234,36 @@ Output:
 ### Train model
 Train model with ``fit`` class:
 ```python
-model.fit(train_data, train_labels, epochs=EPOCHS, validation_data=(test_data, test_labels))
+history = model.fit(train_data, train_labels, epochs=EPOCHS, validation_data=(test_data, test_labels))
+```
+
+### Plot Loss and accuraty evolution
+```python
+# Plot the evolution of loss and accuracy
+plt.figure(figsize=(12, 5))
+
+# --- Loss plot ---
+plt.subplot(1, 2, 1)
+plt.plot(history.history['loss'], label='Training loss')
+plt.plot(history.history['val_loss'], label='Validation loss')
+plt.title('Loss Function Evolution')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.legend()
+plt.grid(True)
+
+# --- Accuracy plot ---
+plt.subplot(1, 2, 2)
+plt.plot(history.history['accuracy'], label='Training accuracy')
+plt.plot(history.history['val_accuracy'], label='Validation accuracy')
+plt.title('Accuracy Evolution')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.grid(True)
+
+plt.tight_layout()
+plt.show()
 ```
 
 ### Evaluate model
