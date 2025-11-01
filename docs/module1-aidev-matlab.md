@@ -1,5 +1,5 @@
 # Neural Network definition and training with MATLAB
-## [Back to index](index.md)
+## [Back to Module 1](module1-aidev.md)
 
 ## Read MNIST dataset with MATLAB
 
