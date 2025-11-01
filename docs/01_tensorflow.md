@@ -147,9 +147,12 @@ TensorFlow model will be defined with Keras API and ``Sequential``. The ``Sequen
 ```python
 model = tf.keras.Sequential([
         tf.keras.layers.Flatten(input_shape=input_shape),
-        tf.keras.layers.Dense(128, activation='relu'),
-        tf.keras.layers.Dense(32,activation='relu'),
-        tf.keras.layers.Dense(num_classes,activation='softmax')
+        tf.keras.layers.Dense(64),
+        tf.keras.layers.ReLU(),
+        tf.keras.layers.Dense(32),
+        tf.keras.layers.ReLU(),
+        tf.keras.layers.Dense(num_classes),
+        tf.keras.layers.Activation(tf.nn.softmax, name="Softmax1")
     ])
 ```
 #### Convolutional Neural Network (CNN)
@@ -167,13 +170,17 @@ model = tf.keras.Sequential([
 
 ```python
 model = tf.keras.Sequential([
-        tf.keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=input_shape),
+        tf.keras.layers.Conv2D(32, (3, 3), input_shape=input_shape),
+        tf.keras.layers.ReLU(),
         tf.keras.layers.MaxPooling2D((2, 2)),
-        tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+        tf.keras.layers.Conv2D(64, (3, 3)),
+        tf.keras.layers.ReLU(),
         tf.keras.layers.MaxPooling2D((2, 2)),
         tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(64, activation='relu'),
-        tf.keras.layers.Dense(num_classes, activation='softmax')
+        tf.keras.layers.Dense(64),
+        tf.keras.layers.ReLU(),
+        tf.keras.layers.Dense(num_classes),
+        tf.keras.layers.Activation(tf.nn.softmax, name="Softmax1")
     ])
 ```
 ## Training
