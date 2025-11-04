@@ -1,5 +1,5 @@
-# # Neural Network definition and training with Python and TensorFlow
-## [Back to index](index.md)
+# Neural Network definition and training with Python and TensorFlow
+## [Back to Module 2](module2-aidev.md)
 
 Requirements:
 - Python3 >=3.7
@@ -147,9 +147,12 @@ TensorFlow model will be defined with Keras API and ``Sequential``. The ``Sequen
 ```python
 model = tf.keras.Sequential([
         tf.keras.layers.Flatten(input_shape=input_shape),
-        tf.keras.layers.Dense(128, activation='relu'),
-        tf.keras.layers.Dense(32,activation='relu'),
-        tf.keras.layers.Dense(num_classes,activation='softmax')
+        tf.keras.layers.Dense(64),
+        tf.keras.layers.ReLU(),
+        tf.keras.layers.Dense(32),
+        tf.keras.layers.ReLU(),
+        tf.keras.layers.Dense(num_classes),
+        tf.keras.layers.Activation(tf.nn.softmax, name="Softmax1")
     ])
 ```
 #### Convolutional Neural Network (CNN)
@@ -167,13 +170,17 @@ model = tf.keras.Sequential([
 
 ```python
 model = tf.keras.Sequential([
-        tf.keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=input_shape),
+        tf.keras.layers.Conv2D(32, (3, 3), input_shape=input_shape),
+        tf.keras.layers.ReLU(),
         tf.keras.layers.MaxPooling2D((2, 2)),
-        tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+        tf.keras.layers.Conv2D(64, (3, 3)),
+        tf.keras.layers.ReLU(),
         tf.keras.layers.MaxPooling2D((2, 2)),
         tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(64, activation='relu'),
-        tf.keras.layers.Dense(num_classes, activation='softmax')
+        tf.keras.layers.Dense(64),
+        tf.keras.layers.ReLU(),
+        tf.keras.layers.Dense(num_classes),
+        tf.keras.layers.Activation(tf.nn.softmax, name="Softmax1")
     ])
 ```
 ## Training
@@ -208,11 +215,11 @@ Output:
 ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━┩
 │ flatten (Flatten)               │ (None, 784)            │             0 │
 ├─────────────────────────────────┼────────────────────────┼───────────────┤
-│ dense (Dense)                   │ (None, 128)            │       100,480 │
+│ dense (Dense)                   │ (None, 64)             │        50,240 │
 ├─────────────────────────────────┼────────────────────────┼───────────────┤
-│ re_lu (ReLU)                    │ (None, 128)            │             0 │
+│ re_lu (ReLU)                    │ (None, 64)             │             0 │
 ├─────────────────────────────────┼────────────────────────┼───────────────┤
-│ dense_1 (Dense)                 │ (None, 32)             │         4,128 │
+│ dense_1 (Dense)                 │ (None, 32)             │         2,080 │
 ├─────────────────────────────────┼────────────────────────┼───────────────┤
 │ re_lu_1 (ReLU)                  │ (None, 32)             │             0 │
 ├─────────────────────────────────┼────────────────────────┼───────────────┤
@@ -220,14 +227,43 @@ Output:
 ├─────────────────────────────────┼────────────────────────┼───────────────┤
 │ Softmax1 (Activation)           │ (None, 10)             │             0 │
 └─────────────────────────────────┴────────────────────────┴───────────────┘
- Total params: 104,938 (409.91 KB)
- Trainable params: 104,938 (409.91 KB)
+ Total params: 52,650 (205.66 KB)
+ Trainable params: 52,650 (205.66 KB)
  Non-trainable params: 0 (0.00 B)
 ```
 ### Train model
 Train model with ``fit`` class:
 ```python
-model.fit(train_data, train_labels, epochs=EPOCHS, validation_data=(test_data, test_labels))
+history = model.fit(train_data, train_labels, epochs=EPOCHS, validation_data=(test_data, test_labels))
+```
+
+### Plot Loss and accuraty evolution
+```python
+# Plot the evolution of loss and accuracy
+plt.figure(figsize=(12, 5))
+
+# --- Loss plot ---
+plt.subplot(1, 2, 1)
+plt.plot(history.history['loss'], label='Training loss')
+plt.plot(history.history['val_loss'], label='Validation loss')
+plt.title('Loss Function Evolution')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.legend()
+plt.grid(True)
+
+# --- Accuracy plot ---
+plt.subplot(1, 2, 2)
+plt.plot(history.history['accuracy'], label='Training accuracy')
+plt.plot(history.history['val_accuracy'], label='Validation accuracy')
+plt.title('Accuracy Evolution')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.grid(True)
+
+plt.tight_layout()
+plt.show()
 ```
 
 ### Evaluate model

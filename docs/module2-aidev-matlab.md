@@ -1,9 +1,9 @@
 # Neural Network definition and training with MATLAB
-## [Back to index](index.md)
+## [Back to Module 2](module2-aidev.md)
 
 ## Read MNIST dataset with MATLAB
 
-Downlaod fucntion to load MNIST dat from [
+Download function to load MNIST dat from [
 matlab-mnist-two-layer-perceptron
 ](https://github.com/davidstutz/matlab-mnist-two-layer-perceptron/tree/master): 
 - [loadMNISTImages.m](https://github.com/davidstutz/matlab-mnist-two-layer-perceptron/blob/master/loadMNISTImages.m)
@@ -67,9 +67,9 @@ sgtitle('First 10 MNIST Training Images');
 ### Fully Connected (FC)
 ```matlab
 layers = [
-        imageInputLayer([28 28 1]) % Tamaño de entrada
+        imageInputLayer([28 28 1])
         flattenLayer
-        fullyConnectedLayer(128)
+        fullyConnectedLayer(64)
         reluLayer
         fullyConnectedLayer(32)
         reluLayer
@@ -81,11 +81,12 @@ layers = [
 ### Convolutional Neural Network (CNN)
 ```matlab
 layers = [
-        imageInputLayer([28 28 1]) % Tamaño de entrada
-        flattenLayer
-        fullyConnectedLayer(128)
+        imageInputLayer([28 28 1])
+        convolution2dLayer(3, 16, 'Padding', 'same')
         reluLayer
-        fullyConnectedLayer(32)
+        maxPooling2dLayer(2, 'Stride', 2)        
+        flattenLayer
+        fullyConnectedLayer(16)
         reluLayer
         fullyConnectedLayer(numClasses)
         softmaxLayer
@@ -150,7 +151,7 @@ fprintf('Test Accuracy: %.2f%%\n', accuracy * 100);
 ```
 
 ## Estimate time per inference
-(Task)
+Use 'tic' 'toc' to compute inference time
 
 ## Load trainded model from TensorFlow
 Use the Keras ``H5`` format and load it with ``importKerasNetwork``:
