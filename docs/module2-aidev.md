@@ -20,7 +20,7 @@ A specialized architecture for image processing tasks. It employs convolutional 
 - Train both models on the MNIST dataset and evaluate their accuracy and loss.
 - Compare the performance and efficiency between FCNN and CNN models.
 
-## [A1: Introduction to TensorFlow](module1-aidev-tensorflow.md)
-## [A2: Introduction to MATLAB](module1-aidev-matlab.md)
-## [A3: Post-Training Quantization (PTQ) Tutorial with TensorFlow Lite](module1-aidev-ptq.md)
-## [A4: Quantization-Aware Training (QAT) Tutorial with TensorFlow Lite](module1-aidev-qat.md)
+## [A1: Introduction to TensorFlow](module2-aidev-tensorflow.md)
+## [A2: Introduction to MATLAB](module2-aidev-matlab.md)
+## [A3: Post-Training Quantization (PTQ) Tutorial with TensorFlow Lite](module2-aidev-ptq.md)
+## [A4: Quantization-Aware Training (QAT) Tutorial with TensorFlow Lite](module2-aidev-qat.md)

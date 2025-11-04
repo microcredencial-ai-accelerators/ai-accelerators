@@ -1,5 +1,5 @@
 # Quantization-Aware Training (QAT) Tutorial with TensorFlow Lite
-## [Back to Module 1](module1-aidev.md)
+## [Back to Module 2](module2-aidev.md)
 
 This tutorial demonstrates how to perform **Quantization-Aware Training (QAT)** using the **TensorFlow Model Optimization Toolkit**.  
 Unlike Post-Training Quantization (PTQ), QAT simulates quantization during training, allowing the model to adapt to INT8 precision and recover most of the lost accuracy.

@@ -1,5 +1,5 @@
 # Post-Training Quantization (PTQ) Tutorial with TensorFlow Lite
-## [Back to Module 1](module1-aidev.md)
+## [Back to Module 2](module2-aidev.md)
 
 This tutorial demonstrates how to perform **Post-Training Quantization (PTQ)** on a trained MNIST model (either fully-connected or convolutional) using TensorFlow Lite.  
 The process involves loading a pre-trained FP32 model, defining a representative dataset for calibration, converting the model to an INT8 TFLite version, and evaluating both accuracies.

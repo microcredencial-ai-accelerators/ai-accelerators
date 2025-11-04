@@ -39,4 +39,4 @@ Alternatively, you can download it from:
 - `train-labels.idx1-ubyte`
 - `t10k-images.idx3-ubyte`
 - `t10k-labels.idx1-ubyte`
-## [Module 1: AI model definition and traning](module1-aidev.md)
+## [Module 2: AI model definition and traning](module2-aidev.md)
