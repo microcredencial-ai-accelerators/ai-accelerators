@@ -22,3 +22,4 @@ A specialized architecture for image processing tasks. It employs convolutional 
 
 ## [A1: Introduction to TensorFlow](module1-aidev-tensorflow.md)
 ## [A2: Introduction to MATLAB](module1-aidev-matlab.md)
+## [A3: Post-Training Quantization (PTQ) Tutorial with TensorFlow Lite](module1-aidev-ptq.md)
