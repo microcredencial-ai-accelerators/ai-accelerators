@@ -134,7 +134,7 @@ int main(int argc, char** argv){
         cl_program prg = clCreateProgramWithBinary(ctx, 1, &dev, lens, bins, &binst, &err); CL_CHECK(err);
         CL_CHECK(clBuildProgram(prg, 0, nullptr, "", nullptr, nullptr));
 
-        cl_kernel krn = clCreateKernel(prg, "fc_mnist", &err); CL_CHECK(err);
+        cl_kernel krn = clCreateKernel(prg, "fc_64x32_infer_fp32", &err); CL_CHECK(err);
 
         // 6) Buffers constantes (pesos/bias)
         cl_mem dW0 = make_ro_buffer(ctx, W0.size()*sizeof(float), W0.data(), &err); CL_CHECK(err);
