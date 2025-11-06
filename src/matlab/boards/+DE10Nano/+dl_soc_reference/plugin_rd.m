@@ -11,7 +11,7 @@ hRD.ReferenceDesignName = 'DE10 Nano Soc Reference Design';
 hRD.BoardName = 'Terasic DE10-Nano SoC';
 
 % Tool version (Quartus Prime version used)
-hRD.SupportedToolVersion = {'21.1','22.1.1'};  % Update based on your install
+hRD.SupportedToolVersion = {'18.1.0'};  % Update based on your install
 
 %% Add custom design files
 % add custom Qsys design

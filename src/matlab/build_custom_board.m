@@ -61,8 +61,8 @@ hPC.TargetPlatform = 'Terasic DE10-Nano SoC';
 
 % Add the synthesis tool to the MATLAB path. Uncomment the line below and
 % provide the correct path.
-% quartus_path = strcat(getenv("QUARTUS_ROOTDIR"), "/bin/quartus");
-quartus_path = '/opt/FPGA/Intel/intelFPGA/21.1std/quartus/bin/quartus'
+quartus_path = strcat(getenv("QUARTUS_ROOTDIR"), "/bin/quartus");
+% quartus_path = '/opt/FPGA/Intel/intelFPGA/21.1std/quartus/bin/quartus'
 
 hdlsetuptoolpath('ToolName', 'Altera Quartus II','ToolPath', quartus_path);
 
