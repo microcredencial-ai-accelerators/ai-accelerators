@@ -46,6 +46,7 @@ hPC.setModuleProperty("conv","FeatureSizeLimit", 1024)
 hPC.setModuleProperty("fc","FCThreadNumber",4)
 hPC.setModuleProperty("fc","InputMemorySize",1024)
 hPC.setModuleProperty("fc","OutputMemorySize",1024)
+hPC.TargetFrequency=50; % Cyclone V SoC
 
 if optimize_dlprocessor_to_nn
   hPC.optimizeConfigurationForNetwork(net);
