@@ -1,4 +1,5 @@
 # Creating a MATLAB Deep Learning Processor for the Terasic DE10-Nano SoC
+## [Back to Module 3](module3-accelerators.md)
 
 This tutorial guides you through creating a **Deep Learning Processor (DL Processor)** for the **Terasic DE10-Nano SoC** using **MATLAB**, **HDL Coder**, and **Deep Learning HDL Toolbox**.
 
@@ -78,6 +79,20 @@ hPC.setModuleProperty("conv", "FeatureSizeLimit", 1024);
 hPC.setModuleProperty("fc", "FCThreadNumber", 4);
 hPC.setModuleProperty("fc", "InputMemorySize", 1024);
 hPC.setModuleProperty("fc", "OutputMemorySize", 1024);
+```
+
+Reource usage can be estimated with:
+```matlab
+ hPC.estimateResources;
+```
+Example result for Intel Arria 10 SoC development kit with single precision:
+```
+Deep Learning Processor Estimator Resource Results
+
+                            DSPs          Block RAM*     LUTs(CLB/ALUT)
+                        -------------    -------------    ------------- 
+DL_Processor                 231           16442624          117943
+* Block RAM represents Block RAM tiles in Xilinx devices and Block RAM bits in Intel devices
 ```
 
 ### Optional Optimization
