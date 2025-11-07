@@ -61,7 +61,7 @@ int main(int argc, char** argv){
         // 1: aocx
         // 2: images_u8.bin (N*784 bytes, raw MNIST)
         // 3: labels.bin     (N bytes)
-        // 4: weights_dir    (weights/cnn_small)
+        // 4: Wfceights_dir    (weights/cnn_small)
         // 5: out_dir PGM    (default: opencl/data/raw_pgms)
         // 6: save_k         (# raw PGM to save; default: 10)
         const std::string aocx_path = (argc>1? argv[1] : "opencl/kernels/cnn_small_fp32.aocx");
@@ -82,17 +82,17 @@ int main(int argc, char** argv){
         // conv: [16,1,3,3], [16]
         // fc1 : [16,2704], [16]
         // fc2 : [10,16],   [10]
-        auto Wc0 = read_bin<float>(wdir + "/conv0_W.bin");
-        auto bc0 = read_bin<float>(wdir + "/conv0_b.bin");
-        auto W1  = read_bin<float>(wdir + "/fc1_W.bin");
-        auto b1  = read_bin<float>(wdir + "/fc1_b.bin");
-        auto W2  = read_bin<float>(wdir + "/fc2_W.bin");
-        auto b2  = read_bin<float>(wdir + "/fc2_b.bin");
+        auto Wc0  = read_bin<float>(wdir + "/conv0_W.bin");
+        auto bc0  = read_bin<float>(wdir + "/conv0_b.bin");
+        auto Wfc1 = read_bin<float>(wdir + "/fc1_W.bin");
+        auto bfc1 = read_bin<float>(wdir + "/fc1_b.bin");
+        auto Wfc2 = read_bin<float>(wdir + "/fc2_W.bin");
+        auto bfc2 = read_bin<float>(wdir + "/fc2_b.bin");
 
         if ((int)Wc0.size()!=C1*C0*3*3 || (int)bc0.size()!=C1 ||
-            (int)W1.size()!=FC_M*FC_IN || (int)b1.size()!=FC_M ||
-            (int)W2.size()!=FC_O*FC_M  || (int)b2.size()!=FC_O){
-            std::cerr << "[ERR] Weight sizes do not match the network.\n"; return 1;
+            (int)Wfc1.size()!=FC_M*FC_IN || (int)bfc1.size()!=FC_M ||
+            (int)Wfc2.size()!=FC_O*FC_M  || (int)bfc2.size()!=FC_O){
+            std::cerr << "[ERR] Wfceight sizes do not match the network.\n"; return 1;
         }
 
         // 2) Load raw images (uint8) and labels
@@ -144,10 +144,10 @@ int main(int argc, char** argv){
         // 7) Constant buffers (weights/bias)
         cl_mem dWc0 = make_ro_buffer(ctx, Wc0.size()*sizeof(float), Wc0.data(), &err); CL_CHECK(err);
         cl_mem dBc0 = make_ro_buffer(ctx, bc0.size()*sizeof(float), bc0.data(), &err); CL_CHECK(err);
-        cl_mem dW1  = make_ro_buffer(ctx, W1 .size()*sizeof(float), W1 .data(), &err); CL_CHECK(err);
-        cl_mem dB1  = make_ro_buffer(ctx, b1 .size()*sizeof(float), b1 .data(), &err); CL_CHECK(err);
-        cl_mem dW2  = make_ro_buffer(ctx, W2 .size()*sizeof(float), W2 .data(), &err); CL_CHECK(err);
-        cl_mem dB2  = make_ro_buffer(ctx, b2 .size()*sizeof(float), b2 .data(), &err); CL_CHECK(err);
+        cl_mem dW1  = make_ro_buffer(ctx, Wfc1 .size()*sizeof(float), Wfc1 .data(), &err); CL_CHECK(err);
+        cl_mem dB1  = make_ro_buffer(ctx, bfc1 .size()*sizeof(float), bfc1 .data(), &err); CL_CHECK(err);
+        cl_mem dW2  = make_ro_buffer(ctx, Wfc2 .size()*sizeof(float), Wfc2 .data(), &err); CL_CHECK(err);
+        cl_mem dB2  = make_ro_buffer(ctx, bfc2 .size()*sizeof(float), bfc2 .data(), &err); CL_CHECK(err);
 
         // 8) Activation buffers
         std::vector<float> x_f32(H0*W0), logits(FC_O);
