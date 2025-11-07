@@ -45,6 +45,34 @@ cl_mem make_ro_buffer(cl_context ctx, size_t nbytes, const void* host, cl_int* e
                           nbytes, const_cast<void*>(host), err);
 }
 
+
+static std::vector<float>
+reorder_fc1_columns_nhwc_to_nchw(const std::vector<float>& W1_src,
+                                 int C, int H, int W, int Out)
+{
+    const int In = C * H * W;
+    if ((int)W1_src.size() != Out * In) {
+        throw std::runtime_error("[ERR] reorder_fc1_columns_nhwc_to_nchw: size mismatch");
+    }
+
+    std::vector<float> W1_dst(Out * In);
+
+    for (int c = 0; c < C; ++c) {
+        for (int h = 0; h < H; ++h) {
+            for (int w_ = 0; w_ < W; ++w_) {
+                const int i_nchw = ((c * H) + h) * W + w_;      // NCHW: (c,h,w)
+                const int i_nhwc = ((h * W) + w_) * C + c;      // NHWC: (h,w,c)
+
+                // Copy the whole column (todas las filas 'Out')
+                for (int o = 0; o < Out; ++o) {
+                    W1_dst[o * In + i_nchw] = W1_src[o * In + i_nhwc];
+                }
+            }
+        }
+    }
+    return W1_dst;
+}
+
 // -------- Main --------
 
 int main(int argc, char** argv){
@@ -82,6 +110,13 @@ int main(int argc, char** argv){
             (int)Wfc2.size()!=FC_O*FC_M  || (int)bfc2.size()!=FC_O){
             std::cerr << "[ERR] Weight sizes do not match the network.\n"; return 1;
         }
+
+        const int C = C1;   // 16
+        const int H = H1;   // 13
+        const int W = W1;   // 13 
+        const int Out = FC_M; // 16
+        std::vector<float> Wfc1_fixed = reorder_fc1_columns_nhwc_to_nchw(Wfc1, C, H, W, Out);
+        Wfc1.swap(Wfc1_fixed); // Wfc1 NCHW
 
         // 2) Load raw images (uint8) and labels
         std::ifstream fu(imgs_bin, std::ios::binary);
