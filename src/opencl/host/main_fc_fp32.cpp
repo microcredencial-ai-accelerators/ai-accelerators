@@ -74,7 +74,7 @@ int main(int argc, char** argv){
         const int save_k            = (argc>6? std::atoi(argv[6]) : 10);
 
         // Red (tu FC): 784 -> 128 -> 32 -> 10
-        const int in_dim = 784, h1=128, h2=32, out_dim=10;
+        const int in_dim = 784, h1=64, h2=32, out_dim=10;
 
         // 1) Pesos/bias
         auto W0 = read_bin<float>(wdir + "/fc0_W.bin");
