@@ -40,14 +40,6 @@ std::vector<unsigned char> read_bytes_file(const std::string& path){
     return b;
 }
 
-bool save_pgm_28x28(const std::string& path, const uint8_t* pix){
-    std::ofstream f(path, std::ios::binary);
-    if(!f) return false;
-    f << "P5\n28 28\n255\n";
-    f.write(reinterpret_cast<const char*>(pix), 28*28);
-    return true;
-}
-
 cl_mem make_ro_buffer(cl_context ctx, size_t nbytes, const void* host, cl_int* err){
     return clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                           nbytes, const_cast<void*>(host), err);
@@ -62,14 +54,10 @@ int main(int argc, char** argv){
         // 2: images_u8.bin (N*784 bytes, raw MNIST)
         // 3: labels.bin     (N bytes)
         // 4: Wfceights_dir    (weights/cnn_small)
-        // 5: out_dir PGM    (default: opencl/data/raw_pgms)
-        // 6: save_k         (# raw PGM to save; default: 10)
         const std::string aocx_path = (argc>1? argv[1] : "opencl/kernels/cnn_small_fp32.aocx");
         const std::string imgs_bin  = (argc>2? argv[2] : "opencl/data/test_images_u8_10.bin");
         const std::string labs_bin  = (argc>3? argv[3] : "opencl/data/test_labels_10.bin");
         const std::string wdir      = (argc>4? argv[4] : "opencl/weights/cnn_small");
-        const std::string out_dir   = (argc>5? argv[5] : "opencl/data/raw_pgms");
-        const int save_k            = (argc>6? std::atoi(argv[6]) : 10);
 
         // Shapes
         const int H0=28, W0=28, C0=1;
@@ -110,10 +98,7 @@ int main(int argc, char** argv){
         }
         std::cout<<"[INFO] Batch: "<<N<<" images (uint8, not normalized).\n";
 
-        // 3) Ensure output dir for PGM
-        ::mkdir(out_dir.c_str(), 0777);
-
-        // 4) OpenCL setup (profiling queue)
+        // 3) OpenCL setup (profiling queue)
         cl_uint np=0; CL_CHECK(clGetPlatformIDs(0,nullptr,&np));
         std::vector<cl_platform_id> plats(np); CL_CHECK(clGetPlatformIDs(np, plats.data(), nullptr));
         cl_platform_id plat = plats.empty()? nullptr : plats[0];
@@ -129,7 +114,7 @@ int main(int argc, char** argv){
         cl_context ctx = clCreateContext(nullptr, 1, &dev, nullptr, nullptr, &err); CL_CHECK(err);
         cl_command_queue q = clCreateCommandQueue(ctx, dev, CL_QUEUE_PROFILING_ENABLE, &err); CL_CHECK(err);
 
-        // 5) Load .aocx and build
+        // 4) Load .aocx and build
         auto aocx_vec = read_bytes_file(aocx_path);
         const unsigned char* bins[] = { aocx_vec.data() };
         size_t lens[] = { aocx_vec.size() };
@@ -137,11 +122,11 @@ int main(int argc, char** argv){
         cl_program prg = clCreateProgramWithBinary(ctx, 1, &dev, lens, bins, &binst, &err); CL_CHECK(err);
         CL_CHECK(clBuildProgram(prg, 0, nullptr, "", nullptr, nullptr));
 
-        // 6) Kernels
+        // 5) Kernels
         cl_kernel k_conv = clCreateKernel(prg, "cnn16_conv_relu_pool", &err); CL_CHECK(err);
         cl_kernel k_head = clCreateKernel(prg, "cnn16_head_fc",       &err); CL_CHECK(err);
 
-        // 7) Constant buffers (weights/bias)
+        // 6) Constant buffers (weights/bias)
         cl_mem dWc0 = make_ro_buffer(ctx, Wc0.size()*sizeof(float), Wc0.data(), &err); CL_CHECK(err);
         cl_mem dBc0 = make_ro_buffer(ctx, bc0.size()*sizeof(float), bc0.data(), &err); CL_CHECK(err);
         cl_mem dW1  = make_ro_buffer(ctx, Wfc1 .size()*sizeof(float), Wfc1 .data(), &err); CL_CHECK(err);
@@ -149,13 +134,13 @@ int main(int argc, char** argv){
         cl_mem dW2  = make_ro_buffer(ctx, Wfc2 .size()*sizeof(float), Wfc2 .data(), &err); CL_CHECK(err);
         cl_mem dB2  = make_ro_buffer(ctx, bfc2 .size()*sizeof(float), bfc2 .data(), &err); CL_CHECK(err);
 
-        // 8) Activation buffers
+        // 7) Activation buffers
         std::vector<float> x_f32(H0*W0), logits(FC_O);
         cl_mem dX    = clCreateBuffer(ctx, CL_MEM_READ_ONLY,  sizeof(float)*H0*W0,    nullptr, &err); CL_CHECK(err); // [1,28,28]
         cl_mem dY13  = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(float)*C1*H1*W1, nullptr, &err); CL_CHECK(err); // [16,13,13]
         cl_mem dLOG  = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY, sizeof(float)*FC_O,     nullptr, &err); CL_CHECK(err); // [10]
 
-        // 9) Set static kernel args
+        // 8) Set static kernel args
         // conv
         int a=0;
         CL_CHECK(clSetKernelArg(k_conv, a++, sizeof(cl_mem), &dWc0));
@@ -171,7 +156,7 @@ int main(int argc, char** argv){
         CL_CHECK(clSetKernelArg(k_head, a++, sizeof(cl_mem), &dY13)); // xin = conv output
         CL_CHECK(clSetKernelArg(k_head, a++, sizeof(cl_mem), &dLOG));
 
-        // 10) Run per image: save raw PGM, normalize, run both kernels, gather timings
+        // 9) Run per image: save raw PGM, normalize, run both kernels, gather timings
         size_t g=1;
         int correct=0;
         double sum_ms_conv=0.0, sum_ms_head=0.0, sum_ms_total=0.0;
@@ -180,13 +165,7 @@ int main(int argc, char** argv){
         std::cout << std::fixed << std::setprecision(3);
         for(int n=0; n<N; ++n){
             const uint8_t* raw = &Xraw[n*(H0*W0)];
-
-            if(n < save_k){
-                std::ostringstream oss; oss << out_dir << "/cnn_img_"<<n<<"_label_"<<int(Lall[n])<<".pgm";
-                if(!save_pgm_28x28(oss.str(), raw)){
-                    std::cerr<<"[WARN] Cannot save "<<oss.str()<<"\n";
-                }
-            }
+            
             // Normalize to [0,1]
             for(int i=0;i<H0*W0;++i) x_f32[i] = float(raw[i]) / 255.0f;
 
