@@ -40,3 +40,4 @@ Alternatively, you can download it from:
 - `t10k-images.idx3-ubyte`
 - `t10k-labels.idx1-ubyte`
 ## [Module 2: AI model definition and traning](module2-aidev.md)
+## [Module 3: AI Accelerators](module3-accelerators.md)
