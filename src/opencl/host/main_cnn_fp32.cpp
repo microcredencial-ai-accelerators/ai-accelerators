@@ -80,7 +80,7 @@ int main(int argc, char** argv){
         if ((int)Wc0.size()!=C1*C0*3*3 || (int)bc0.size()!=C1 ||
             (int)Wfc1.size()!=FC_M*FC_IN || (int)bfc1.size()!=FC_M ||
             (int)Wfc2.size()!=FC_O*FC_M  || (int)bfc2.size()!=FC_O){
-            std::cerr << "[ERR] Wfceight sizes do not match the network.\n"; return 1;
+            std::cerr << "[ERR] Weight sizes do not match the network.\n"; return 1;
         }
 
         // 2) Load raw images (uint8) and labels
@@ -165,7 +165,7 @@ int main(int argc, char** argv){
         std::cout << std::fixed << std::setprecision(3);
         for(int n=0; n<N; ++n){
             const uint8_t* raw = &Xraw[n*(H0*W0)];
-            
+
             // Normalize to [0,1]
             for(int i=0;i<H0*W0;++i) x_f32[i] = float(raw[i]) / 255.0f;
 
