@@ -1,13 +1,18 @@
-// kernels/cnn_small_fp32.cl
+// ============================================================================
 // Model: Conv(16, 3x3, valid) → ReLU → MaxPool2x2 → Flatten(2704) → Dense(16) → ReLU → Dense(10)
 // Tensor layout is [C, H, W] in row-major: idx = c*(H*W) + h*W + w
 // Conv weights: [Cout, Cin, Kh, Kw] ; FC weights: [Out, In]
-
-// -----------------------------------------------------------------------------
+//
 // KERNEL 1: 3x3 Convolution (Cout=16, Cin=1), ReLU and inline MaxPool 2x2
 // Input:   x_in  [1,28,28]  (flattened as H*W)
 // Output:  yout  [16,13,13] (conv valid 26x26 then pool 2x2 → 13x13)
-// -----------------------------------------------------------------------------
+//
+// NOTE:
+// - FC input after flatten is [C, H, W]. Keras weights are [H, W, C]
+// - Softmax is NOT required for prediction; do argmax on host.
+// - Unroll pragmas are set to 1 to keep area low; increase for more parallelism.
+// ============================================================================
+
 __attribute__((max_global_work_dim(0)))
 __kernel void cnn16_conv_relu_pool(
     __global const float* restrict Wc0,   // [16,1,3,3] = 16*1*3*3
