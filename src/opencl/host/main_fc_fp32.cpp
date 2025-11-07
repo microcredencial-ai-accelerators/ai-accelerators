@@ -37,15 +37,6 @@ std::vector<unsigned char> read_bytes_file(const std::string& path){
     return b;
 }
 
-// Save PGM
-bool save_pgm_28x28(const std::string& path, const uint8_t* pix){
-    std::ofstream f(path, std::ios::binary);
-    if(!f) return false;
-    f << "P5\n28 28\n255\n";
-    f.write(reinterpret_cast<const char*>(pix), 28*28);
-    return true;
-}
-
 // Create buffer RO. Copy data host->device
 cl_mem make_ro_buffer(cl_context ctx, size_t nbytes, const void* host, cl_int* err){
     return clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
@@ -64,14 +55,10 @@ int main(int argc, char** argv){
         // 2: images_u8.bin (N*784 bytes)
         // 3: labels.bin     (N bytes)
         // 4: weights_dir
-        // 5: out_dir PGM    (default: opencl/data/raw_pgms)
-        // 6: save_k         (# imágenes a guardar como PGM; default: 10)
         const std::string aocx_path = (argc>1? argv[1] : "opencl/kernels/fc_fp32.aocx");
         const std::string imgs_bin  = (argc>2? argv[2] : "opencl/data/test_images_u8_10.bin");
         const std::string labs_bin  = (argc>3? argv[3] : "opencl/data/test_labels_10.bin");
         const std::string wdir      = (argc>4? argv[4] : "opencl/weights/fc");
-        const std::string out_dir   = (argc>5? argv[5] : "opencl/data/raw_pgms");
-        const int save_k            = (argc>6? std::atoi(argv[6]) : 10);
 
         // Neural Network (FC): 784 -> 64 -> 32 -> 10
         const int in_dim = 784, h1=64, h2=32, out_dim=10;
@@ -107,10 +94,7 @@ int main(int argc, char** argv){
         }
         std::cout<<"[INFO] Batch: "<<N<<" images (u8).\n";
 
-        // 3) PGM Folder
-        ::mkdir(out_dir.c_str(), 0777);
-
-        // 4) OpenCL: plataform / device / context / queue (with profiling)
+        // 3) OpenCL: plataform / device / context / queue (with profiling)
         cl_uint np=0; CL_CHECK(clGetPlatformIDs(0,nullptr,&np));
         std::vector<cl_platform_id> plats(np); CL_CHECK(clGetPlatformIDs(np, plats.data(), nullptr));
         cl_platform_id plat = plats.empty()? nullptr : plats[0];
@@ -126,7 +110,7 @@ int main(int argc, char** argv){
         cl_context ctx = clCreateContext(nullptr, 1, &dev, nullptr, nullptr, &err); CL_CHECK(err);
         cl_command_queue q = clCreateCommandQueue(ctx, dev, CL_QUEUE_PROFILING_ENABLE, &err); CL_CHECK(err);
 
-        // 5) Load .aocx and build program
+        // 4) Load .aocx and build program
         auto aocx_vec = read_bytes_file(aocx_path);
         const unsigned char* bins[] = { aocx_vec.data() };
         size_t lens[] = { aocx_vec.size() };
@@ -136,7 +120,7 @@ int main(int argc, char** argv){
 
         cl_kernel krn = clCreateKernel(prg, "fc_64x32_infer_fp32", &err); CL_CHECK(err);
 
-        // 6) Buffers (wights/bias)
+        // 5) Buffers (wights/bias)
         cl_mem dW0 = make_ro_buffer(ctx, W0.size()*sizeof(float), W0.data(), &err); CL_CHECK(err);
         cl_mem dB0 = make_ro_buffer(ctx, b0.size()*sizeof(float), b0.data(), &err); CL_CHECK(err);
         cl_mem dW1 = make_ro_buffer(ctx, W1.size()*sizeof(float), W1.data(), &err); CL_CHECK(err);
@@ -144,12 +128,12 @@ int main(int argc, char** argv){
         cl_mem dW2 = make_ro_buffer(ctx, W2.size()*sizeof(float), W2.data(), &err); CL_CHECK(err);
         cl_mem dB2 = make_ro_buffer(ctx, b2.size()*sizeof(float), b2.data(), &err); CL_CHECK(err);
 
-        // 7) Buffers E/S (per image)
+        // 6) Buffers E/S (per image)
         std::vector<float> x_f32(in_dim), y(out_dim);
         cl_mem dX = clCreateBuffer(ctx, CL_MEM_READ_ONLY,  sizeof(float)*in_dim,  nullptr, &err); CL_CHECK(err);
         cl_mem dY = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY, sizeof(float)*out_dim, nullptr, &err); CL_CHECK(err);
 
-        // 8) Static kernel args
+        // 7) Static kernel args
         int a=0;
         CL_CHECK(clSetKernelArg(krn, a++, sizeof(cl_mem), &dW0));
         CL_CHECK(clSetKernelArg(krn, a++, sizeof(cl_mem), &dB0));
@@ -163,7 +147,7 @@ int main(int argc, char** argv){
         CL_CHECK(clSetKernelArg(krn, a++, sizeof(int), &in_dim));
         CL_CHECK(clSetKernelArg(krn, a++, sizeof(int), &out_dim));
 
-        // 9) Inference: save raw PGM, normalize, timming and print
+        // 8) Inference: normalize, timming and print
         size_t g=1;
         int correct=0;
         double sum_ms = 0.0;
@@ -172,14 +156,6 @@ int main(int argc, char** argv){
         std::cout << std::fixed << std::setprecision(3);
         for(int n=0; n<N; ++n){
             const uint8_t* raw = &Xraw[n*in_dim];
-
-            // Save raw PGM
-            if(n < save_k){
-                std::ostringstream oss; oss << out_dir << "/img_"<<n<<"_label_"<<int(Lall[n])<<".pgm";
-                if(!save_pgm_28x28(oss.str(), raw)){
-                    std::cerr<<"[WARN] Unable to save "<<oss.str()<<"\n";
-                }
-            }
 
             // Normalize [0,1] image
             for(int i=0;i<in_dim;++i) x_f32[i] = float(raw[i]) / 255.0f;
