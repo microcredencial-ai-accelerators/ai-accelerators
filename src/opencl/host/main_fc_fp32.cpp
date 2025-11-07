@@ -10,18 +10,18 @@
 #include <sys/stat.h>
 #include <stdexcept>
 #include <cstdlib>
-#include <iomanip>   // <<< NEW >>> para formateo
+#include <iomanip>
 
-// -------- Utilidades --------
+// -------- Utilities --------
 
 template<typename T>
 std::vector<T> read_bin(const std::string& path){
     std::ifstream f(path, std::ios::binary);
-    if(!f) throw std::runtime_error("No se puede abrir: " + path);
+    if(!f) throw std::runtime_error("Unable to open: " + path);
     f.seekg(0, std::ios::end);
     size_t nbytes = size_t(f.tellg());
     f.seekg(0, std::ios::beg);
-    if(nbytes % sizeof(T) != 0) throw std::runtime_error("Tamaño inesperado en " + path);
+    if(nbytes % sizeof(T) != 0) throw std::runtime_error("Unexpected size at " + path);
     std::vector<T> v(nbytes / sizeof(T));
     f.read(reinterpret_cast<char*>(v.data()), nbytes);
     return v;
@@ -37,7 +37,7 @@ std::vector<unsigned char> read_bytes_file(const std::string& path){
     return b;
 }
 
-// Guarda PGM P5 28x28 desde 784 bytes (uint8)
+// Save PGM
 bool save_pgm_28x28(const std::string& path, const uint8_t* pix){
     std::ofstream f(path, std::ios::binary);
     if(!f) return false;
@@ -46,7 +46,7 @@ bool save_pgm_28x28(const std::string& path, const uint8_t* pix){
     return true;
 }
 
-// Crea buffer RO copiando datos host->device
+// Create buffer RO. Copy data host->device
 cl_mem make_ro_buffer(cl_context ctx, size_t nbytes, const void* host, cl_int* err){
     return clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                           nbytes, const_cast<void*>(host), err);
@@ -61,7 +61,7 @@ int main(int argc, char** argv){
     try{
         // Args:
         // 1: aocx
-        // 2: images_u8.bin (N*784 bytes, SIN normalizar)
+        // 2: images_u8.bin (N*784 bytes)
         // 3: labels.bin     (N bytes)
         // 4: weights_dir
         // 5: out_dir PGM    (default: opencl/data/raw_pgms)
@@ -73,10 +73,10 @@ int main(int argc, char** argv){
         const std::string out_dir   = (argc>5? argv[5] : "opencl/data/raw_pgms");
         const int save_k            = (argc>6? std::atoi(argv[6]) : 10);
 
-        // Red (tu FC): 784 -> 128 -> 32 -> 10
+        // Neural Network (FC): 784 -> 64 -> 32 -> 10
         const int in_dim = 784, h1=64, h2=32, out_dim=10;
 
-        // 1) Pesos/bias
+        // 1) Weights/bias
         auto W0 = read_bin<float>(wdir + "/fc0_W.bin");
         auto b0 = read_bin<float>(wdir + "/fc0_b.bin");
         auto W1 = read_bin<float>(wdir + "/fc1_W.bin");
@@ -87,30 +87,30 @@ int main(int argc, char** argv){
         if((int)W0.size()!=h1*in_dim || (int)b0.size()!=h1 ||
            (int)W1.size()!=h2*h1     || (int)b1.size()!=h2 ||
            (int)W2.size()!=out_dim*h2|| (int)b2.size()!=out_dim){
-            std::cerr << "[ERR] Tamaños de pesos/bias no coinciden con la red.\n";
+            std::cerr << "[ERR] Weights/bias sizes do not match with the NN.\n";
             return 1;
         }
 
-        // 2) Datos u8 sin normalizar y labels
+        // 2) Data u8 and labels
         std::ifstream fu(imgs_bin, std::ios::binary);
-        if(!fu){ std::cerr<<"[ERR] No se puede abrir "<<imgs_bin<<"\n"; return 1; }
+        if(!fu){ std::cerr<<"[ERR] Unable to open "<<imgs_bin<<"\n"; return 1; }
         fu.seekg(0, std::ios::end); size_t ib = size_t(fu.tellg()); fu.seekg(0, std::ios::beg);
-        if(ib % (28*28) != 0){ std::cerr<<"[ERR] "<<imgs_bin<<" no es múltiplo de 784 bytes\n"; return 1; }
+        if(ib % (28*28) != 0){ std::cerr<<"[ERR] "<<imgs_bin<<" not x784 bytes\n"; return 1; }
         const int N = int( ib / (28*28) );
         std::vector<uint8_t> Xraw(N*in_dim);
         fu.read(reinterpret_cast<char*>(Xraw.data()), ib);
 
         auto Lall = read_bin<uint8_t>(labs_bin);
         if((int)Lall.size()!=N){
-            std::cerr<<"[ERR] labels size ("<<Lall.size()<<") no coincide con imágenes ("<<N<<")\n";
+            std::cerr<<"[ERR] labels size ("<<Lall.size()<<") does not match with images ("<<N<<")\n";
             return 1;
         }
-        std::cout<<"[INFO] Lote: "<<N<<" imágenes (u8 sin normalizar).\n";
+        std::cout<<"[INFO] Batch: "<<N<<" images (u8).\n";
 
-        // 3) Carpeta PGM
+        // 3) PGM Folder
         ::mkdir(out_dir.c_str(), 0777);
 
-        // 4) OpenCL: plataforma / device / contexto / cola (con profiling)
+        // 4) OpenCL: plataform / device / context / queue (with profiling)
         cl_uint np=0; CL_CHECK(clGetPlatformIDs(0,nullptr,&np));
         std::vector<cl_platform_id> plats(np); CL_CHECK(clGetPlatformIDs(np, plats.data(), nullptr));
         cl_platform_id plat = plats.empty()? nullptr : plats[0];
@@ -119,14 +119,14 @@ int main(int argc, char** argv){
             std::string name(sz,'\0'); clGetPlatformInfo(p, CL_PLATFORM_NAME,sz,&name[0],nullptr);
             if(name.find("Intel(R) FPGA")!=std::string::npos){ plat=p; break; }
         }
-        if(!plat){ std::cerr<<"[ERR] Plataforma OpenCL no encontrada.\n"; return 1; }
+        if(!plat){ std::cerr<<"[ERR] OpenCL Platform not found.\n"; return 1; }
 
         cl_device_id dev; CL_CHECK(clGetDeviceIDs(plat, CL_DEVICE_TYPE_ALL, 1, &dev, nullptr));
         cl_int err=CL_SUCCESS;
         cl_context ctx = clCreateContext(nullptr, 1, &dev, nullptr, nullptr, &err); CL_CHECK(err);
         cl_command_queue q = clCreateCommandQueue(ctx, dev, CL_QUEUE_PROFILING_ENABLE, &err); CL_CHECK(err);
 
-        // 5) Cargar .aocx y construir programa
+        // 5) Load .aocx and build program
         auto aocx_vec = read_bytes_file(aocx_path);
         const unsigned char* bins[] = { aocx_vec.data() };
         size_t lens[] = { aocx_vec.size() };
@@ -136,7 +136,7 @@ int main(int argc, char** argv){
 
         cl_kernel krn = clCreateKernel(prg, "fc_64x32_infer_fp32", &err); CL_CHECK(err);
 
-        // 6) Buffers constantes (pesos/bias)
+        // 6) Buffers (wights/bias)
         cl_mem dW0 = make_ro_buffer(ctx, W0.size()*sizeof(float), W0.data(), &err); CL_CHECK(err);
         cl_mem dB0 = make_ro_buffer(ctx, b0.size()*sizeof(float), b0.data(), &err); CL_CHECK(err);
         cl_mem dW1 = make_ro_buffer(ctx, W1.size()*sizeof(float), W1.data(), &err); CL_CHECK(err);
@@ -144,12 +144,12 @@ int main(int argc, char** argv){
         cl_mem dW2 = make_ro_buffer(ctx, W2.size()*sizeof(float), W2.data(), &err); CL_CHECK(err);
         cl_mem dB2 = make_ro_buffer(ctx, b2.size()*sizeof(float), b2.data(), &err); CL_CHECK(err);
 
-        // 7) Buffers de E/S por imagen
+        // 7) Buffers E/S (per image)
         std::vector<float> x_f32(in_dim), y(out_dim);
         cl_mem dX = clCreateBuffer(ctx, CL_MEM_READ_ONLY,  sizeof(float)*in_dim,  nullptr, &err); CL_CHECK(err);
         cl_mem dY = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY, sizeof(float)*out_dim, nullptr, &err); CL_CHECK(err);
 
-        // 8) Args estáticos del kernel
+        // 8) Static kernel args
         int a=0;
         CL_CHECK(clSetKernelArg(krn, a++, sizeof(cl_mem), &dW0));
         CL_CHECK(clSetKernelArg(krn, a++, sizeof(cl_mem), &dB0));
@@ -160,49 +160,52 @@ int main(int argc, char** argv){
         CL_CHECK(clSetKernelArg(krn, a++, sizeof(cl_mem), &dX));
         CL_CHECK(clSetKernelArg(krn, a++, sizeof(cl_mem), &dY));
 
-        // 9) Inferencia por imagen: guardar PGM crudo, normalizar, cronometraje y print
+        CL_CHECK(clSetKernelArg(krn, a++, sizeof(int), &in_dim));
+        CL_CHECK(clSetKernelArg(krn, a++, sizeof(int), &out_dim));
+
+        // 9) Inference: save raw PGM, normalize, timming and print
         size_t g=1;
         int correct=0;
-        double sum_ms = 0.0;        // <<< NEW >>>
-        double min_ms = 1e100, max_ms = 0.0; // opcional
+        double sum_ms = 0.0;
+        double min_ms = 1e100, max_ms = 0.0;
 
         std::cout << std::fixed << std::setprecision(3);
         for(int n=0; n<N; ++n){
             const uint8_t* raw = &Xraw[n*in_dim];
 
-            // Guardar PGM crudo (sin normalizar) para las primeras 'save_k'
+            // Save raw PGM
             if(n < save_k){
                 std::ostringstream oss; oss << out_dir << "/img_"<<n<<"_label_"<<int(Lall[n])<<".pgm";
                 if(!save_pgm_28x28(oss.str(), raw)){
-                    std::cerr<<"[WARN] No se pudo guardar "<<oss.str()<<"\n";
+                    std::cerr<<"[WARN] Unable to save "<<oss.str()<<"\n";
                 }
             }
 
-            // Normalización [0,1] en host
+            // Normalize [0,1] image
             for(int i=0;i<in_dim;++i) x_f32[i] = float(raw[i]) / 255.0f;
 
-            // Copia entrada
+            // Input copy
             CL_CHECK(clEnqueueWriteBuffer(q, dX, CL_TRUE, 0, sizeof(float)*in_dim, x_f32.data(), 0, nullptr, nullptr));
 
-            // Ejecuta kernel con evento para cronometrar
+            // Run kernel with event for timming
             cl_event e;
             CL_CHECK(clEnqueueNDRangeKernel(q, krn, 1, nullptr, &g, nullptr, 0, nullptr, &e));
             CL_CHECK(clFinish(q));
 
-            // Lee salida
+            // Output reading
             CL_CHECK(clEnqueueReadBuffer(q, dY, CL_TRUE, 0, sizeof(float)*out_dim, y.data(), 0, nullptr, nullptr));
 
-            // Tiempo del kernel (ns -> ms)
+            // Kernel time (ns -> ms)
             cl_ulong t0=0, t1=0;
             clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_START, sizeof(t0), &t0, nullptr);
             clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END,   sizeof(t1), &t1, nullptr);
-            clReleaseEvent(e); // liberar evento
+            clReleaseEvent(e); // Release event
             double ms = double(t1 - t0) / 1e6;
             sum_ms += ms;
             if(ms < min_ms) min_ms = ms;
             if(ms > max_ms) max_ms = ms;
 
-            // Predicción y print por iteración
+            // Prediction and print y print por iteración
             int pred = int(std::max_element(y.begin(), y.end()) - y.begin());
             bool ok = (pred == int(Lall[n]));
             std::cout << "["
@@ -218,10 +221,10 @@ int main(int argc, char** argv){
         const double mean_ms = (N>0 ? sum_ms / N : 0.0); // <<< NEW >>>
         std::cout << "\n[RESULT] Accuracy = " << (100.0 * correct / N)
                   << "%  ("<<correct<<"/"<<N<<")\n";
-        std::cout << "[RESULT] Tiempo kernel medio = " << mean_ms
+        std::cout << "[RESULT] Average kernel inference time = " << mean_ms
                   << " ms  (min=" << min_ms << " ms, max=" << max_ms << " ms)\n";
 
-        // Limpieza
+        // Clear
         clReleaseMemObject(dW0); clReleaseMemObject(dB0);
         clReleaseMemObject(dW1); clReleaseMemObject(dB1);
         clReleaseMemObject(dW2); clReleaseMemObject(dB2);
@@ -229,6 +232,6 @@ int main(int argc, char** argv){
         clReleaseKernel(krn); clReleaseProgram(prg); clReleaseCommandQueue(q); clReleaseContext(ctx);
         return 0;
     }catch(const std::exception& e){
-        std::cerr<<"Excepción: "<<e.what()<<"\n"; return 1;
+        std::cerr<<"Except: "<<e.what()<<"\n"; return 1;
     }
 }
