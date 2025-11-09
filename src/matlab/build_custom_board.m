@@ -46,6 +46,7 @@ hPC.setModuleProperty("conv","FeatureSizeLimit", 1024)
 hPC.setModuleProperty("fc","FCThreadNumber",4)
 hPC.setModuleProperty("fc","InputMemorySize",1024)
 hPC.setModuleProperty("fc","OutputMemorySize",1024)
+hPC.TargetFrequency=50; % Cyclone V SoC
 
 if optimize_dlprocessor_to_nn
   hPC.optimizeConfigurationForNetwork(net);
@@ -61,8 +62,8 @@ hPC.TargetPlatform = 'Terasic DE10-Nano SoC';
 
 % Add the synthesis tool to the MATLAB path. Uncomment the line below and
 % provide the correct path.
-% quartus_path = strcat(getenv("QUARTUS_ROOTDIR"), "/bin/quartus");
-quartus_path = '/opt/FPGA/Intel/intelFPGA/21.1std/quartus/bin/quartus'
+quartus_path = strcat(getenv("QUARTUS_ROOTDIR"), "/bin/quartus");
+% quartus_path = '/opt/FPGA/Intel/intelFPGA/21.1std/quartus/bin/quartus'
 
 hdlsetuptoolpath('ToolName', 'Altera Quartus II','ToolPath', quartus_path);
 

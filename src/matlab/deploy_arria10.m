@@ -45,8 +45,8 @@ if strcmp(interface , "JTAG")
     % or from Linux terminal before running MATLAB:
     %     export PATH=/opt/FPGA/Intel/intelFPGA/21.1std/quartus/bin:$PATH
     %     export LD_LIBRARY_PATH=/opt/FPGA/Intel/intelFPGA/21.1std/quartus/linux64:$LD_LIBRARY_PATH
-    setenv('LD_LIBRARY_PATH', '/opt/FPGA/Intel/intelFPGA/21.1std/quartus/linux64');
-    setenv('PATH', ['/opt/FPGA/Intel/intelFPGA/21.1std/quartus/bin:' getenv('PATH')]);
+    % setenv('LD_LIBRARY_PATH', '/opt/FPGA/Intel/intelFPGA/21.1std/quartus/linux64');
+    % setenv('PATH', ['/opt/FPGA/Intel/intelFPGA/21.1std/quartus/bin:' getenv('PATH')]);
     hTarget = dlhdl.Target('Intel','Interface','JTAG');
 elseif strcmp(interface , "Ethernet")
     hTarget = dlhdl.Target('Intel','Interface','Ethernet','IPAddress', ...
@@ -95,7 +95,7 @@ for i = 1:numSamples
     [~, pred_idx] = max(prediction);
     pred_idx = pred_idx - 1; % MATLAB starting index is 1
 
-    pred_label = categorical(classNames(pred_idx));
+    true_label = test_labels(i);
 
     % Compare labels
     if pred_label == true_label
