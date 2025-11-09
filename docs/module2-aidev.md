@@ -1,4 +1,4 @@
-# Microcredencial AI Accelerators for Reconfigurable Technologies: AI model definition and traning
+# Microcredencial AI Accelerators for Reconfigurable Technologies: Introduction to Accelerated Computing and Reconfigurable Technologies
 ## [Back to index](index.md)
 
 This module introduces the fundamental concepts and practical workflow for developing and training Artificial Intelligence (AI) models based on Deep Learning. The process is demonstrated using both TensorFlow/Keras (Python) and MATLAB, focusing on the creation, training, and evaluation of neural networks for image classification tasks.

@@ -1,5 +1,5 @@
 # Creating a MATLAB Deep Learning Processor for the Terasic DE10-Nano SoC
-## [Back to Module 3](module3-accelerators.md)
+## [Back to Module 4](module4-designflows.md)
 
 This tutorial guides you through creating a **Deep Learning Processor (DL Processor)** for the **Terasic DE10-Nano SoC** using **MATLAB**, **HDL Coder**, and **Deep Learning HDL Toolbox**.
 
