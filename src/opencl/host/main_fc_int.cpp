@@ -13,7 +13,7 @@
 #include <iomanip>
 #include <cmath>
 
-// Use your auto-generated quantization parameters
+// Include your cleaned quant header (coloned macros commented out)
 #include "quant_params_fc_int.h"
 
 // ---------- Utilities ----------
@@ -56,9 +56,9 @@ int main(int argc, char** argv){
     const std::string aocx_path = (argc>1? argv[1] : "opencl/kernels/fc_int8.aocx");
     const std::string imgs_bin  = (argc>2? argv[2] : "opencl/data/test_images_u8.bin");
     const std::string labs_bin  = (argc>3? argv[3] : "opencl/data/test_labels.bin");
-    const std::string wdir      = (argc>4? argv[4] : "opencl/weights/fc_int8");
+    const std::string wdir      = (argc>4? argv[4] : "weights/fc_int8");
 
-    // Network (same as FP32 demo): 784 -> 64 -> 32 -> 10
+    // Network: 784 -> 64 -> 32 -> 10
     const int in_dim  = 784;
     const int h1      = 64;
     const int h2      = 32;
@@ -82,13 +82,13 @@ int main(int argc, char** argv){
     // 2) Load raw images (uint8) and labels
     std::ifstream fu(imgs_bin, std::ios::binary);
     if(!fu){ std::cerr<<"[ERR] Unable to open "<<imgs_bin<<"\n"; return 1; }
-    fu.seekg(0, std::ios::end); size_t ib = size_t(f.tellg()); fu.seekg(0, std::ios::beg);
+    fu.seekg(0, std::ios::end); size_t ib = size_t(fu.tellg()); fu.seekg(0, std::ios::beg); // <- fixed
     if(ib % (28*28) != 0){ std::cerr<<"[ERR] "<<imgs_bin<<" not x784 bytes\n"; return 1; }
     const int N = int( ib / (28*28) );
     std::vector<uint8_t> Xraw(N*in_dim);
     fu.read(reinterpret_cast<char*>(Xraw.data()), ib);
 
-    auto Lall = read_bin<uint8_t>(labs_bin);
+    auto Lall = read_bin<uint8_t>(labs_bin); // keep ONLY this declaration
     if ((int)Lall.size()!=N){
       std::cerr<<"[ERR] labels size ("<<Lall.size()<<") does not match images ("<<N<<")\n";
       return 1;
@@ -129,7 +129,7 @@ int main(int argc, char** argv){
     cl_mem dW2 = make_ro_buffer(ctx, W2.size()*sizeof(int8_t),  W2.data(), &err); CL_CHECK(err);
     cl_mem dB2 = make_ro_buffer(ctx, b2.size()*sizeof(int32_t), b2.data(), &err); CL_CHECK(err);
 
-    // 7) Quant parameters from your quant_params.h
+    // 7) Quant parameters from your header (use only identifier-safe symbols)
     const float INPUT_SCALE = SEQUENTIAL_2_FLATTEN_2_RESHAPE_SCALE;
     const int   INPUT_ZP    = SEQUENTIAL_2_FLATTEN_2_RESHAPE_ZERO_POINT;
 
@@ -148,6 +148,7 @@ int main(int argc, char** argv){
     const float L2_W_SCALE   = SEQUENTIAL_2_DENSE_8_MATMUL_SCALE;
     const int   L2_W_ZP      = SEQUENTIAL_2_DENSE_8_MATMUL_ZERO_POINT;
 
+    // Scalar requantization multipliers (per layer)
     const float M0 = (INPUT_SCALE * L0_W_SCALE) / L0_OUT_SCALE;
     const float M1 = (L0_OUT_SCALE * L1_W_SCALE) / L1_OUT_SCALE;
     const float M2 = (L1_OUT_SCALE * L2_W_SCALE) / L2_OUT_SCALE;
@@ -157,48 +158,45 @@ int main(int argc, char** argv){
     cl_mem dX = clCreateBuffer(ctx, CL_MEM_READ_ONLY,  sizeof(int8_t)*in_dim,  nullptr, &err); CL_CHECK(err);
     cl_mem dY = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY, sizeof(int8_t)*out_dim, nullptr, &err); CL_CHECK(err);
 
-    // 9) Set static kernel args
+    // 9) Set static kernel args (must match fc_64x32_infer_int8 signature)
     int a=0;
     // L0
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(cl_mem),  &dW0));
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(cl_mem),  &dB0));
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L0_W_ZP));
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(float),   &M0));
-    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &INPUT_ZP));     // x0_zp
-    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L0_OUT_ZP));    // y0_zp
+    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &INPUT_ZP));
+    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L0_OUT_ZP));
     // L1
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(cl_mem),  &dW1));
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(cl_mem),  &dB1));
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L1_W_ZP));
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(float),   &M1));
-    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L0_OUT_ZP));    // x1_zp
-    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L1_OUT_ZP));    // y1_zp
+    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L0_OUT_ZP)); // x1_zp
+    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L1_OUT_ZP)); // y1_zp
     // L2
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(cl_mem),  &dW2));
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(cl_mem),  &dB2));
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L2_W_ZP));
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(float),   &M2));
-    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L1_OUT_ZP));    // x2_zp
-    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L2_OUT_ZP));    // y2_zp
+    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L1_OUT_ZP)); // x2_zp
+    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L2_OUT_ZP)); // y2_zp
     // IO + sizes
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(cl_mem),  &dX));
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(cl_mem),  &dY));
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &in_dim));
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &out_dim));
 
-    // 10) Run per image
+    // 10) Run per image: normalize -> quantize -> run -> read -> argmax
     size_t g=1;
     int correct=0;
     double sum_ms = 0.0, min_ms=1e100, max_ms=0.0;
     std::cout << std::fixed << std::setprecision(3);
 
-    // load labels
-    auto Lall = read_bin<uint8_t>(labs_bin);
-
     for(int n=0; n<N; ++n){
       const uint8_t* raw = &Xraw[n*in_dim];
 
-      // Normalize to [0,1] and quantize with your input params
+      // Normalize to [0,1] then quantize to int8 using input params
       for(int i=0;i<in_dim;++i){
         float xf = float(raw[i]) / 255.0f;
         int qv = int(std::round(xf / INPUT_SCALE)) + INPUT_ZP;
@@ -225,7 +223,7 @@ int main(int argc, char** argv){
       double ms = double(t1 - t0) / 1e6;
       sum_ms += ms; if(ms<min_ms) min_ms=ms; if(ms>max_ms) max_ms=ms;
 
-      // Argmax
+      // Argmax on int8 logits
       int pred = int(std::max_element(y_q.begin(), y_q.end()) - y_q.begin());
       bool ok = (pred == int(Lall[n]));
       std::cout << "[" << std::setw(3) << n << "] pred=" << pred
