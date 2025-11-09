@@ -85,7 +85,7 @@ def sanitize_name(name):
     name = name.replace("/", "_").replace("-", "_").replace(";", "_")
     return name.upper()
 # Open header for writing
-with open(OUTPUT_PATH / "quant_params.h", "w") as f:
+with open(OUTPUT_PATH / f"quant_params{model_type}_int.h", "w") as f:
     f.write("// Auto-generated quantization parameters\n")
     f.write("#pragma once\n\n")
 
