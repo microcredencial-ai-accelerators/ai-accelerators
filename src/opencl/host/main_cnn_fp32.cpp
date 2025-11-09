@@ -40,6 +40,7 @@ std::vector<unsigned char> read_bytes_file(const std::string& path){
     return b;
 }
 
+// Create buffer RO. Copy data host->device
 cl_mem make_ro_buffer(cl_context ctx, size_t nbytes, const void* host, cl_int* err){
     return clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                           nbytes, const_cast<void*>(host), err);
@@ -79,13 +80,13 @@ int main(int argc, char** argv){
     try{
         // Args:
         // 1: aocx
-        // 2: images_u8.bin (N*784 bytes, raw MNIST)
+        // 2: images_u8.bin (N*784 bytes)
         // 3: labels.bin     (N bytes)
-        // 4: Wfceights_dir    (weights/cnn_small)
-        const std::string aocx_path = (argc>1? argv[1] : "opencl/kernels/cnn_small_fp32.aocx");
-        const std::string imgs_bin  = (argc>2? argv[2] : "opencl/data/test_images_u8_10.bin");
-        const std::string labs_bin  = (argc>3? argv[3] : "opencl/data/test_labels_10.bin");
-        const std::string wdir      = (argc>4? argv[4] : "opencl/weights/cnn_small");
+        // 4: Wfceights_dir
+        const std::string aocx_path = (argc>1? argv[1] : "opencl/kernels/cnn_fp32.aocx");
+        const std::string imgs_bin  = (argc>2? argv[2] : "opencl/data/test_images_u8.bin");
+        const std::string labs_bin  = (argc>3? argv[3] : "opencl/data/test_labels.bin");
+        const std::string wdir      = (argc>4? argv[4] : "opencl/weights/cnn_fp32");
 
         // Shapes
         const int H0=28, W0=28, C0=1;
@@ -133,7 +134,7 @@ int main(int argc, char** argv){
         }
         std::cout<<"[INFO] Batch: "<<N<<" images (uint8, not normalized).\n";
 
-        // 3) OpenCL setup (profiling queue)
+        // 3) OpenCL: plataform / device / context / (profiling queue)
         cl_uint np=0; CL_CHECK(clGetPlatformIDs(0,nullptr,&np));
         std::vector<cl_platform_id> plats(np); CL_CHECK(clGetPlatformIDs(np, plats.data(), nullptr));
         cl_platform_id plat = plats.empty()? nullptr : plats[0];
@@ -149,7 +150,7 @@ int main(int argc, char** argv){
         cl_context ctx = clCreateContext(nullptr, 1, &dev, nullptr, nullptr, &err); CL_CHECK(err);
         cl_command_queue q = clCreateCommandQueue(ctx, dev, CL_QUEUE_PROFILING_ENABLE, &err); CL_CHECK(err);
 
-        // 4) Load .aocx and build
+        // 4) Load .aocx and build program
         auto aocx_vec = read_bytes_file(aocx_path);
         const unsigned char* bins[] = { aocx_vec.data() };
         size_t lens[] = { aocx_vec.size() };
@@ -191,7 +192,7 @@ int main(int argc, char** argv){
         CL_CHECK(clSetKernelArg(k_head, a++, sizeof(cl_mem), &dY13)); // xin = conv output
         CL_CHECK(clSetKernelArg(k_head, a++, sizeof(cl_mem), &dLOG));
 
-        // 9) Run per image: save raw PGM, normalize, run both kernels, gather timings
+        // 9) Run per image: normalize, run both kernels, gather timings
         size_t g=1;
         int correct=0;
         double sum_ms_conv=0.0, sum_ms_head=0.0, sum_ms_total=0.0;
@@ -220,7 +221,7 @@ int main(int argc, char** argv){
             // D2H logits
             CL_CHECK(clEnqueueReadBuffer(q, dLOG, CL_TRUE, 0, sizeof(float)*FC_O, logits.data(), 0, nullptr, nullptr));
 
-            // Timings
+            // Timings (ns -> ms)
             cl_ulong c0s, c0e, c1s, c1e;
             clGetEventProfilingInfo(e0, CL_PROFILING_COMMAND_START, sizeof(c0s), &c0s, nullptr);
             clGetEventProfilingInfo(e0, CL_PROFILING_COMMAND_END,   sizeof(c0e), &c0e, nullptr);
@@ -238,6 +239,7 @@ int main(int argc, char** argv){
             if(ms_tot < min_ms_tot) min_ms_tot = ms_tot;
             if(ms_tot > max_ms_tot) max_ms_tot = ms_tot;
 
+            // Prediction and print y print por iteración
             int pred = int(std::max_element(logits.begin(), logits.end()) - logits.begin());
             bool ok = (pred == int(Lall[n]));
             if (ok) ++correct;

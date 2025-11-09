@@ -56,9 +56,9 @@ int main(int argc, char** argv){
         // 3: labels.bin     (N bytes)
         // 4: weights_dir
         const std::string aocx_path = (argc>1? argv[1] : "opencl/kernels/fc_fp32.aocx");
-        const std::string imgs_bin  = (argc>2? argv[2] : "opencl/data/test_images_u8_10.bin");
-        const std::string labs_bin  = (argc>3? argv[3] : "opencl/data/test_labels_10.bin");
-        const std::string wdir      = (argc>4? argv[4] : "opencl/weights/fc");
+        const std::string imgs_bin  = (argc>2? argv[2] : "opencl/data/test_images_u8.bin");
+        const std::string labs_bin  = (argc>3? argv[3] : "opencl/data/test_labels.bin");
+        const std::string wdir      = (argc>4? argv[4] : "opencl/weights/fc_fp32");
 
         // Neural Network (FC): 784 -> 64 -> 32 -> 10
         const int in_dim = 784, h1=64, h2=32, out_dim=10;
@@ -78,7 +78,7 @@ int main(int argc, char** argv){
             return 1;
         }
 
-        // 2) Data u8 and labels
+        // 2) Load raw images (uint8) and labels
         std::ifstream fu(imgs_bin, std::ios::binary);
         if(!fu){ std::cerr<<"[ERR] Unable to open "<<imgs_bin<<"\n"; return 1; }
         fu.seekg(0, std::ios::end); size_t ib = size_t(fu.tellg()); fu.seekg(0, std::ios::beg);
@@ -94,7 +94,7 @@ int main(int argc, char** argv){
         }
         std::cout<<"[INFO] Batch: "<<N<<" images (u8).\n";
 
-        // 3) OpenCL: plataform / device / context / queue (with profiling)
+        // 3) OpenCL: plataform / device / context / (profiling queue)
         cl_uint np=0; CL_CHECK(clGetPlatformIDs(0,nullptr,&np));
         std::vector<cl_platform_id> plats(np); CL_CHECK(clGetPlatformIDs(np, plats.data(), nullptr));
         cl_platform_id plat = plats.empty()? nullptr : plats[0];
@@ -117,10 +117,11 @@ int main(int argc, char** argv){
         cl_int binst=0;
         cl_program prg = clCreateProgramWithBinary(ctx, 1, &dev, lens, bins, &binst, &err); CL_CHECK(err);
         CL_CHECK(clBuildProgram(prg, 0, nullptr, "", nullptr, nullptr));
-
+ 
+        // 5) Kernels
         cl_kernel krn = clCreateKernel(prg, "fc_64x32_infer_fp32", &err); CL_CHECK(err);
 
-        // 5) Buffers (wights/bias)
+        // 6) Constant buffers (weights/bias)
         cl_mem dW0 = make_ro_buffer(ctx, W0.size()*sizeof(float), W0.data(), &err); CL_CHECK(err);
         cl_mem dB0 = make_ro_buffer(ctx, b0.size()*sizeof(float), b0.data(), &err); CL_CHECK(err);
         cl_mem dW1 = make_ro_buffer(ctx, W1.size()*sizeof(float), W1.data(), &err); CL_CHECK(err);
@@ -133,7 +134,7 @@ int main(int argc, char** argv){
         cl_mem dX = clCreateBuffer(ctx, CL_MEM_READ_ONLY,  sizeof(float)*in_dim,  nullptr, &err); CL_CHECK(err);
         cl_mem dY = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY, sizeof(float)*out_dim, nullptr, &err); CL_CHECK(err);
 
-        // 7) Static kernel args
+        // 8) Set static kernel args
         int a=0;
         CL_CHECK(clSetKernelArg(krn, a++, sizeof(cl_mem), &dW0));
         CL_CHECK(clSetKernelArg(krn, a++, sizeof(cl_mem), &dB0));
@@ -147,7 +148,7 @@ int main(int argc, char** argv){
         CL_CHECK(clSetKernelArg(krn, a++, sizeof(int), &in_dim));
         CL_CHECK(clSetKernelArg(krn, a++, sizeof(int), &out_dim));
 
-        // 8) Inference: normalize, timming and print
+        // 9) Run per image: normalize, run both kernels, gather timings
         size_t g=1;
         int correct=0;
         double sum_ms = 0.0;
@@ -157,7 +158,7 @@ int main(int argc, char** argv){
         for(int n=0; n<N; ++n){
             const uint8_t* raw = &Xraw[n*in_dim];
 
-            // Normalize [0,1] image
+            // Normalize to [0,1]
             for(int i=0;i<in_dim;++i) x_f32[i] = float(raw[i]) / 255.0f;
 
             // Input copy
@@ -171,7 +172,7 @@ int main(int argc, char** argv){
             // Output reading
             CL_CHECK(clEnqueueReadBuffer(q, dY, CL_TRUE, 0, sizeof(float)*out_dim, y.data(), 0, nullptr, nullptr));
 
-            // Kernel time (ns -> ms)
+            // // Timings (ns -> ms)
             cl_ulong t0=0, t1=0;
             clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_START, sizeof(t0), &t0, nullptr);
             clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END,   sizeof(t1), &t1, nullptr);
@@ -200,7 +201,7 @@ int main(int argc, char** argv){
         std::cout << "[RESULT] Average kernel inference time = " << mean_ms
                   << " ms  (min=" << min_ms << " ms, max=" << max_ms << " ms)\n";
 
-        // Clear
+        // Cleanup
         clReleaseMemObject(dW0); clReleaseMemObject(dB0);
         clReleaseMemObject(dW1); clReleaseMemObject(dB1);
         clReleaseMemObject(dW2); clReleaseMemObject(dB2);
