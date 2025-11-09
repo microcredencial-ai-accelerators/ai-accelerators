@@ -6,8 +6,7 @@ from tensorflow.keras.models import load_model
 import numpy as np
 # %%
 # Select model
-model_type = 'cnn'  # Cambia a 'cnn' para usar la red convolucional
-
+model_type = 'cnn'
 # %%
 # Define the path where the model is saved
 SAVEMODEL_PATH = Path(f'./saved_model/mnist_{model_type}') 
