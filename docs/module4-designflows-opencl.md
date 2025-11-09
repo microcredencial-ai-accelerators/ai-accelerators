@@ -6,8 +6,8 @@ This section explains how to deploy, run, and measure performance of your OpenCL
 ## 1. Export Model Weights
 Before running the models on FPGA, export trained model weights from your TensorFlow/Keras models using the provided Python scripts:
 ```
-python3 export_fc_fp32_weights.py
-python3 export_cnn_fp32_weights.py
+python3 src/py/export_fc_fp32_weights.py
+python3 src/py/export_cnn_fp32_weights.py
 ```
 Weights will be saved in binary format under the following structure:
 ```
@@ -196,40 +196,5 @@ Performance summary:
 [RESULT] Average kernel inference time = 0.359 ms  (min=0.355 ms, max=2.695 ms)  
 ```
 
-
-Check OpenCL SDK:
-```
-aoc -version
-```
-List boards:
-```
-aoc -list-boards
-```
-
-Estimation
-```
-aoc -c -v -g -board=$BOARD src/opencl/kernels/cnn_fp32_nounroll.cl -o output/cnn_fp32_nounroll.aocx
-```
-
-Compile:
-```
-export BOARD=de10_nano_sharedonly
-aoc -v -g -board=$BOARD src/opencl/kernels/cnn_fp32.cl -o output/cnn_fp32_unroll8.aocx
-```
-```
-aoc: Environment checks are completed successfully.
-aoc: Cached files in /var/tmp/aocl/ may be used to reduce compilation time
-You are now compiling the full flow!!
-aoc: Selected target board de10_nano_sharedonly
-aoc: Running OpenCL parser....
-aoc: OpenCL parser completed successfully.
-aoc: Optimizing and doing static analysis of code...
-aoc: Linking with IP library ...
-Checking if memory usage is larger than 100%
-Compiler Warning: Auto-unrolled loop at /home/aidev/repositories/ai-dev//home/aidev/repositories/ai-dev/src/opencl/kernels/cnn_fp32.cl:42
-aoc: First stage compilation completed successfully.
-Compiling for FPGA. This process may take a long time, please be patient.
-aoc: Hardware generation completed successfully.
-```
 ## 7. Measure Performance and Latency
 Measure preformance and latency for all the developed kernels and provide a summary table with the resuls.
