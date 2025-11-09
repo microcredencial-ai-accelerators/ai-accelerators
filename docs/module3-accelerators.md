@@ -1,5 +1,4 @@
-# Microcredencial AI Accelerators for Reconfigurable Technologies: AI accelerators
+# Microcredencial AI Accelerators for Reconfigurable Technologies: Introduction to Neural Network Acceleration on FPGAs
 ## [Back to index](index.md)
 
-## [Module 3.1: Creating a MATLAB Deep Learning Processor for the Terasic DE10-Nano SoC](module3-accelerators-matlab.md)
-## [Module 3.2: Deploying a Neural Network on Intel Arria 10 SoC using MATLAB](module3-accelerators-matlab-deployment.md)
+## [Module 3.1: Introduction to OpenCL and Intel FPGA SDK for OpenCL Using DE10-Nano (Cyclone V SoC)](module3-accelerators-opencl.md)

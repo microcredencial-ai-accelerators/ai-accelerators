@@ -1,4 +1,21 @@
-Check OpenCL SDL:
+# Deploying Accelerator on a FPGA with OpenCL and Intel SDK for OpenCL
+## [Back to Module 4](module4-designflows.md)
+
+## 1Export Model Weights
+Export weights from your trained TensorFlow/Keras model:
+
+Conv2D: [O, I, kH, kW]
+Dense layers: [Out, In]
+
+Save as binary files:
+```
+conv0_W.bin, conv0_b.bin
+fc1_W.bin, fc1_b.bin
+fc2_W.bin, fc2_b.bin
+```
+
+## Host PC
+Check OpenCL SDK:
 ```
 aoc -version
 ```
@@ -15,7 +32,22 @@ aoc -c -v -g -board=$BOARD src/opencl/kernels/cnn_fp32_nounroll.cl -o output/cnn
 Compile:
 ```
 export BOARD=de10_nano_sharedonly
-aoc -v -g -board=$BOARD src/opencl/kernels/cnn_fp32_nounroll.cl -o output/cnn_fp32_nounroll.aocx
+aoc -v -g -board=$BOARD src/opencl/kernels/cnn_fp32.cl -o output/cnn_fp32_unroll8.aocx
+```
+```
+aoc: Environment checks are completed successfully.
+aoc: Cached files in /var/tmp/aocl/ may be used to reduce compilation time
+You are now compiling the full flow!!
+aoc: Selected target board de10_nano_sharedonly
+aoc: Running OpenCL parser....
+aoc: OpenCL parser completed successfully.
+aoc: Optimizing and doing static analysis of code...
+aoc: Linking with IP library ...
+Checking if memory usage is larger than 100%
+Compiler Warning: Auto-unrolled loop at /home/aidev/repositories/ai-dev//home/aidev/repositories/ai-dev/src/opencl/kernels/cnn_fp32.cl:42
+aoc: First stage compilation completed successfully.
+Compiling for FPGA. This process may take a long time, please be patient.
+aoc: Hardware generation completed successfully.
 ```
 
 
@@ -45,7 +77,7 @@ DIAGNOSTIC_PASSED
 ```
 Build:
 ```
-g++ -O2 -std=c++11 opencl/host/main_fc_fp32.cpp -o opencl/apps/fc_fp32_host \
+g++ -O2 -std=c++11 opencl/host/main_cnn_fp32.cpp -o opencl/apps/cnn_fp32_host \
   $(aocl compile-config) \
   $(aocl link-config)
 
@@ -62,9 +94,9 @@ aocl program /dev/acl0 opencl/kernels/fc_fp32.aocx
 
 # Ejecuta el host: aocx  imgs_u8  labels  weights_dir    out_dir_PGMs          save_k
 opencl/apps/fc_fp32_host \
-  opencl/kernels/fc_fp32.aocx \
-  opencl/data/test_images_u8_10.bin \
-  opencl/data/test_labels_10.bin \
+  opencl/kernels/fc_fp32_unroll8.aocx \
+  opencl/data/test_images_u8.bin \
+  opencl/data/test_labels.bin \
   opencl/weights/fc_fp32
 
 ```

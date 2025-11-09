@@ -39,5 +39,6 @@ Alternatively, you can download it from:
 - `train-labels.idx1-ubyte`
 - `t10k-images.idx3-ubyte`
 - `t10k-labels.idx1-ubyte`
-## [Module 2: AI model definition and traning](module2-aidev.md)
-## [Module 3: AI Accelerators](module3-accelerators.md)
+## [Module 2: Introduction to Accelerated Computing and Reconfigurable Technologies](module2-aidev.md)
+## [Module 3: Introduction to Neural Network Acceleration on FPGAs](module3-accelerators.md)
+## [Module 4: Specific Design Flows for Implementing AI Algorithms on Reconfigurable Devices](module4-designflows.md)

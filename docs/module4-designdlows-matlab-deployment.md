@@ -1,5 +1,5 @@
 # Deploying a Neural Network on Intel Arria 10 SoC using MATLAB
-## [Back to Module 3](module3-accelerators.md)
+## [Back to Module 4](module4-designflows.md)
 
 This tutorial demonstrates how to deploy a fully connected (FC) neural network on an Intel Arria® 10 SX SoC Development Kit using MATLAB and the Deep Learning HDL Toolbox.
 The process includes model import, FPGA bitstream configuration, network deployment, and inference execution on the target hardware.
