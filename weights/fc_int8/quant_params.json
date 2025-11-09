@@ -1,0 +1,157 @@
+{
+    "serving_default_flatten_2_input:0": {
+        "scales": [
+            0.003921568859368563
+        ],
+        "zero_points": [
+            -128
+        ],
+        "dtype": "<class 'numpy.int8'>",
+        "shape": [
+            1,
+            28,
+            28,
+            1
+        ]
+    },
+    "sequential_2/dense_8/BiasAdd/ReadVariableOp": {
+        "scales": [
+            0.0004039344494231045
+        ],
+        "zero_points": [
+            0
+        ],
+        "dtype": "<class 'numpy.int32'>",
+        "shape": [
+            10
+        ]
+    },
+    "sequential_2/dense_8/MatMul": {
+        "scales": [
+            0.006838690023869276
+        ],
+        "zero_points": [
+            0
+        ],
+        "dtype": "<class 'numpy.int8'>",
+        "shape": [
+            10,
+            32
+        ]
+    },
+    "sequential_2/dense_7/BiasAdd/ReadVariableOp": {
+        "scales": [
+            0.00036725422251038253
+        ],
+        "zero_points": [
+            0
+        ],
+        "dtype": "<class 'numpy.int32'>",
+        "shape": [
+            32
+        ]
+    },
+    "sequential_2/dense_7/MatMul": {
+        "scales": [
+            0.008427958004176617
+        ],
+        "zero_points": [
+            0
+        ],
+        "dtype": "<class 'numpy.int8'>",
+        "shape": [
+            32,
+            64
+        ]
+    },
+    "sequential_2/dense_6/BiasAdd/ReadVariableOp": {
+        "scales": [
+            2.4523691536160186e-05
+        ],
+        "zero_points": [
+            0
+        ],
+        "dtype": "<class 'numpy.int32'>",
+        "shape": [
+            64
+        ]
+    },
+    "sequential_2/dense_6/MatMul": {
+        "scales": [
+            0.0062535409815609455
+        ],
+        "zero_points": [
+            0
+        ],
+        "dtype": "<class 'numpy.int8'>",
+        "shape": [
+            64,
+            784
+        ]
+    },
+    "sequential_2/flatten_2/Reshape": {
+        "scales": [
+            0.003921568859368563
+        ],
+        "zero_points": [
+            -128
+        ],
+        "dtype": "<class 'numpy.int8'>",
+        "shape": [
+            1,
+            784
+        ]
+    },
+    "sequential_2/dense_6/MatMul;sequential_2/re_lu_4/Relu;sequential_2/dense_6/BiasAdd": {
+        "scales": [
+            0.0435757078230381
+        ],
+        "zero_points": [
+            -128
+        ],
+        "dtype": "<class 'numpy.int8'>",
+        "shape": [
+            1,
+            64
+        ]
+    },
+    "sequential_2/dense_7/MatMul;sequential_2/re_lu_5/Relu;sequential_2/dense_7/BiasAdd": {
+        "scales": [
+            0.059066057205200195
+        ],
+        "zero_points": [
+            -128
+        ],
+        "dtype": "<class 'numpy.int8'>",
+        "shape": [
+            1,
+            32
+        ]
+    },
+    "sequential_2/dense_8/MatMul;sequential_2/dense_8/BiasAdd": {
+        "scales": [
+            0.15594395995140076
+        ],
+        "zero_points": [
+            7
+        ],
+        "dtype": "<class 'numpy.int8'>",
+        "shape": [
+            1,
+            10
+        ]
+    },
+    "StatefulPartitionedCall:0": {
+        "scales": [
+            0.00390625
+        ],
+        "zero_points": [
+            -128
+        ],
+        "dtype": "<class 'numpy.int8'>",
+        "shape": [
+            1,
+            10
+        ]
+    }
+}
