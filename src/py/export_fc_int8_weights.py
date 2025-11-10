@@ -12,7 +12,7 @@ model_type = 'fc'
 # %%
 # Define the path where the model is saved
 SAVEMODEL_PATH = Path(f'./saved_model/mnist_{model_type}_int8_ptq')
-OUTPUT_PATH=Path(f'./weights/{model_type}_int8')
+OUTPUT_PATH=Path(f'./weights/{model_type}_int')
 OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
 
 # Load the model
@@ -37,7 +37,7 @@ for t in model_details:
 # Helper function to save dense layer weights
 
 def save_dense(W, b, prefix, output_path):
-    W_rm = W.astype('int8').T.copy()
+    W_rm = W.astype('int8').copy()
     b32  = b.astype('int32').copy()
     W_rm.tofile(output_path / f'{prefix}_W.bin')
     b32.tofile(output_path / f'{prefix}_b.bin')
@@ -85,7 +85,7 @@ def sanitize_name(name):
     name = name.replace("/", "_").replace("-", "_").replace(";", "_")
     return name.upper()
 # Open header for writing
-with open(OUTPUT_PATH / f"quant_params{model_type}_int.h", "w") as f:
+with open(OUTPUT_PATH / f"quant_params_{model_type}_int.h", "w") as f:
     f.write("// Auto-generated quantization parameters\n")
     f.write("#pragma once\n\n")
 
