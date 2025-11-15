@@ -107,7 +107,7 @@ hPC.UseVendorLibrary = 'off';
 ```
 ## Step 3. Define the Target Platform
 ```matlab
-PC.TargetPlatform = 'Terasic DE10-Nano SoC';
+hPC.TargetPlatform = 'Terasic DE10-Nano SoC';
 
 % Specify the Quartus installation path
 quartus_path = '/opt/FPGA/Intel/intelFPGA/21.1std/quartus/bin/quartus';
