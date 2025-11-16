@@ -64,6 +64,19 @@ Stop bits: 1
 Flow control: None
 ```
 - Power on the board and verify Linux boots successfully. You should see a Linux shell prompt via the serial terminal.
+>>In Linux, to access serial devices such as /dev/ttyUSB0, you must either:
+>> 1. Run minicom with sudo privileges, or
+>> 2. Add your user to the dialout group, which grants access to serial ports and reboot the system:
+>>```
+>>sudo usermod -a -G dialout $USER
+>>```
+
+>>To use minicom:
+>>```
+>>minicom -D /dev/ttyUSB0 -b 115200
+>>```
+
+>> Linux user: ```root```
 
 ## 3. Deploy and Run the OpenCL Applications
 ### Step 3.1. Verify OpenCL Runtime
