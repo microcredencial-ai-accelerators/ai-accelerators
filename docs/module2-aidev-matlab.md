@@ -1,6 +1,35 @@
 # Neural Network definition and training with MATLAB
 ## [Back to Module 2](module2-aidev.md)
 
+## Introduction
+
+
+This module introduces how to design, train, evaluate, and visualize neural networks using MATLAB and the Deep Learning Toolbox. MATLAB provides an integrated environment for working with datasets, defining neural network architectures, training with GPU acceleration, and analyzing trained models through interactive tools such as Deep Network Designer.
+
+In this tutorial, you will learn how to:
+- Load the MNIST handwritten digit dataset from raw IDX files
+- Prepare and visualize data in MATLAB
+- Build fully connected and convolutional neural networks
+- Train neural networks using trainNetwork
+- Inspect model architecture and parameters with analyzeNetwork
+- Evaluate classification accuracy on test data
+- Import trained TensorFlow/Keras models into MATLAB
+- Perform inference and measure prediction time
+
+The MNIST dataset consists of 28×28 grayscale digit images (0–9), making it a perfect starting point for exploring deep learning workflows in MATLAB.
+
+The Deep Learning Toolbox offers high-level layers, training options, data management tools, and visualization utilities—making MATLAB a powerful environment for both beginners and experienced practitioners working on prototyping, teaching, or research.
+
+## Prerequisites
+
+The following software components must be installed before running the deployment:
+- MATLAB (MATLAB Online version can be used)
+- **[Deep Learning Toolbox](https://mathworks.com/products/deep-learning.html)**
+
+> MATLAB version used: **R2025b**
+
+---
+
 ## Read MNIST dataset with MATLAB
 
 Download function to load MNIST dat from [
@@ -180,7 +209,6 @@ info = analyzeNetwork(net)
 Evaluate the model:
 
 ```matlab
-
 %% Evaluate moded
 
 % Test dataset
