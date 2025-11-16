@@ -3,14 +3,14 @@
 //                    Flatten [C,H,W]                     -> 2704
 //                    FC1 2704->16 + ReLU                -> 16
 //                    FC2 16->10 (logits INT8)
-// INT8 activations & weights; INT32 biases & accumulators; INT-only requant.
+// INT8 activations & weights; INT32 bias & accumulators; INT-only requant.
 // Weights layout:
 //   - Conv: [Cout, Cin, Kh, Kw]
-//   - FC : [Out, In] by default. If your .bin are [In,Out], compile with:
-//           -DFC_WEIGHTS_ARE_IN_OUT=1
-// Tensor layout in memory: [C, H, W] for conv features.
+//   - FC : [Out, In] by default. If your .bin are [In,Out], build with:
+//           -D FC_WEIGHTS_ARE_IN_OUT=1
+// Tensor layout for conv features: [C, H, W] in memory.
 //
-// Based on your FP32 kernels (structure, loops, indices).  (ref: cnn_fp32.txt)
+// Based on your FP32 kernels (structure, loops, indices).
 // ============================================================================
 
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
@@ -38,7 +38,7 @@
 // ---- INT-only requant: acc(int32) -> int using fixed-point (mult, shift) ----
 inline int requantize_int32(int acc, int mult, int shift, int zp_out) {
   long prod = (long)acc * (long)mult;  // 64-bit intermediate
-  long rq   = (shift > 0) ? ((prod + (1L << (shift - 1))) >> shift) : prod;
+  long rq   = (shift > 0) ? ((prod + (1L << (shift - 1))) >> shift) : prod; // round-to-nearest
   return zp_out + (int)rq;
 }
 inline int clamp_int(int v, int lo, int hi) { return v < lo ? lo : (v > hi ? hi : v); }
@@ -83,7 +83,7 @@ void cnn16_conv_relu_pool_int8(
   for (int oc = 0; oc < C1; ++oc){
     for (int pr = 0; pr < H1; ++pr){
       for (int pc = 0; pc < W1; ++pc){
-        int vmax = -128; // track pooled max in int8 domain
+        int vmax = -128; // pooled max in int8
 
         // 2x2 window over conv-valid map (26x26)
         for (int dr = 0; dr < 2; ++dr){
@@ -92,7 +92,7 @@ void cnn16_conv_relu_pool_int8(
             int ocol = 2*pc + dc;  // [0..25]
 
             int acc = bc0[oc];     // int32 bias (scale = s_in0*s_w0)
-            // Cin=1 (C0)
+            // Cin=1
             for (int ic = 0; ic < C0; ++ic){
               #pragma unroll 1
               for (int kr = 0; kr < Kh; ++kr){
@@ -108,7 +108,7 @@ void cnn16_conv_relu_pool_int8(
                 }
               }
             }
-            // Requantize to output tensor domain & ReLU at zero in quant domain
+            // Requantize & ReLU at zero in quant domain
             int yq = requantize_int32(acc, M0_mult, M0_shift, y0_zp);
             if (yq < y0_zp) yq = y0_zp;
             if (yq > vmax)  vmax = yq;
@@ -123,10 +123,10 @@ void cnn16_conv_relu_pool_int8(
 // ============================================================================
 // KERNEL 2: FC head (2704->16->10) with ReLU between FCs (INT8)
 // Args:
-//   W1:   int8  [FC_M, FC_IN] (or [FC_IN, FC_M] if FC_WEIGHTS_ARE_IN_OUT)
+//   Wfc1: int8  [FC_M, FC_IN] (or [FC_IN, FC_M] if FC_WEIGHTS_ARE_IN_OUT)
 //   b1:   int32 [FC_M]
 //   w1_zp, M1_mult, M1_shift, x1_zp, y1_zp
-//   W2:   int8  [FC_O, FC_M] (or [FC_M, FC_O])
+//   Wfc2: int8  [FC_O, FC_M] (or [FC_M, FC_O])
 //   b2:   int32 [FC_O]
 //   w2_zp, M2_mult, M2_shift, x2_zp, y2_zp
 //   xin:  int8  [FC_IN]  (flattened [C1,H1,W1])
@@ -135,7 +135,7 @@ void cnn16_conv_relu_pool_int8(
 __kernel __attribute__((max_global_work_dim(0)))
 void cnn16_head_fc_int8(
   // FC1
-  __global const char*  restrict W1,
+  __global const char*  restrict Wfc1,
   __global const int*   restrict b1,
   const int                      w1_zp,
   const int                      M1_mult,
@@ -143,7 +143,7 @@ void cnn16_head_fc_int8(
   const int                      x1_zp,
   const int                      y1_zp,
   // FC2
-  __global const char*  restrict W2,
+  __global const char*  restrict Wfc2,
   __global const int*   restrict b2,
   const int                      w2_zp,
   const int                      M2_mult,
@@ -154,18 +154,18 @@ void cnn16_head_fc_int8(
   __global const char*  restrict xin,   // [FC_IN]
   __global char*        restrict logits // [FC_O]
 ){
-  // ---- FC1: 2704 -> 16 + ReLU (quant domain) ----
+  // ---- FC1: 2704 -> 16 + ReLU ----
   char a1[FC_M];
   for (int o = 0; o < FC_M; ++o){
     int acc = b1[o];
     #pragma unroll 1
     for (int i = 0; i < FC_IN; ++i){
       const int xqi = (int)xin[i] - x1_zp;
-      const int wqi = (int)W1[w_idx_fc1(o,i)] - w1_zp;
+      const int wqi = (int)Wfc1[w_idx_fc1(o,i)] - w1_zp;
       acc += xqi * wqi;
     }
     int yq = requantize_int32(acc, M1_mult, M1_shift, y1_zp);
-    if (yq < y1_zp) yq = y1_zp;          // ReLU in quant domain (zero at y1_zp)
+    if (yq < y1_zp) yq = y1_zp;          // ReLU in quant domain
     a1[o] = (char)clamp_int(yq, -128, 127);
   }
 
@@ -175,7 +175,7 @@ void cnn16_head_fc_int8(
     #pragma unroll 1
     for (int i = 0; i < FC_M; ++i){
       const int xqi = (int)a1[i] - x2_zp;
-      const int wqi = (int)W2[w_idx_fc2(o,i)] - w2_zp;
+      const int wqi = (int)Wfc2[w_idx_fc2(o,i)] - w2_zp;
       acc += xqi * wqi;
     }
     int yq = requantize_int32(acc, M2_mult, M2_shift, y2_zp);

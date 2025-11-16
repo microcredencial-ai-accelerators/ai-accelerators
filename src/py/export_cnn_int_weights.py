@@ -37,17 +37,25 @@ def get_qparams(t):
     return scale, zp
 
 # Save binary tensor
-def save_tensor(name, array):
-    array.tofile(OUTPUT_PATH / f"{name}.bin")
-    print(f"[OK] Saved {name}.bin   shape={array.shape}  dtype={array.dtype}")
+
+def save_bin(name, arr, dtype=None):
+    if dtype is not None:
+        arr = arr.astype(dtype)
+    out = OUTPUT_PATH / f"{name}.bin"
+    arr.tofile(out)
+    print(f"[OK] {name:10s} shape={arr.shape} dtype={arr.dtype} -> {out}")
+
+
 
 # %%
 quant_info = {}
 
 # CNN layer storage
-conv0_W = conv0_b = None
-fc0_W = fc0_b = None
-fc1_W = fc1_b = None
+
+def is_int8(a):  return a.dtype == np.int8
+def is_int32(a): return a.dtype == np.int32
+
+convW = convB = fc1W = fc1B = fc2W = fc2B = None
 
 # %%
 # Extract tensors from the model
@@ -69,33 +77,83 @@ for t in model_details:
         "dtype": str(arr.dtype)
     }
 
-    # ---- Conv2D weights: [16, 3, 3, 1] ----
-    if arr.dtype == np.int8 and arr.ndim == 4:
-        conv0_W = arr.copy()
-        save_tensor("conv0_W", conv0_W)
+    
+    # -------------------- Conv weights (expect 3x3x1x16) --------------------
+    # TFLite typically stores Conv2D weights as [Kh, Kw, Cin, Cout] = [3,3,1,16] (NHWC kernels).
+    # We need [Cout, Cin, Kh, Kw] = [16,1,3,3] for the OpenCL kernel.
+    if is_int8(arr) and arr.ndim == 4:
+        sh = arr.shape
+        looks_like_conv_w = (
+            ("conv2d/Conv2D" in name or name.endswith("/weights") or "sequential/conv2d/Conv2D" in name)
+            and sorted(sh) == [1,3,3,16]  # elements are {3,3,1,16} in some order
+        )
+        if looks_like_conv_w or sh == (3,3,1,16) or sh == (16,3,3,1) or sh == (1,3,3,16):
+            # Map to [Cout, Cin, Kh, Kw]
+            if sh == (3,3,1,16):                # [Kh, Kw, Cin, Cout]
+                convW = np.transpose(arr, (3,2,0,1))
+            elif sh == (16,3,3,1):              # [Cout, Kh, Kw, Cin]
+                convW = np.transpose(arr, (0,3,1,2))
+            elif sh == (1,3,3,16):              # [Cin, Kh, Kw, Cout]
+                convW = np.transpose(arr, (3,0,1,2))
+            else:
+                # Generic finder: identify axes by sizes {16,1,3,3}
+                axes = list(range(4))
+                ax_out = next(i for i,s in enumerate(sh) if s==16)
+                ax_in  = next(i for i,s in enumerate(sh) if s==1)
+                # take the remaining two axes as kh/kw (size=3)
+                rem = [i for i in axes if i not in (ax_out, ax_in)]
+                ax_kh, ax_kw = rem
+                convW = np.transpose(arr, (ax_out, ax_in, ax_kh, ax_kw))
+            if convW.size != 16*1*3*3:
+                raise RuntimeError(f"conv0_W unexpected size: {convW.shape}")
+            save_bin("conv0_W", convW, np.int8)
+            continue  # move on; avoid catching this tensor again elsewhere
 
-    # ---- Conv2D bias ----
-    if "conv2d/BiasAdd" in name and arr.dtype == np.int32:
-        conv0_b = arr.copy()
-        save_tensor("conv0_b", conv0_b)
+    # -------------------- Conv bias [16] --------------------
+    if is_int32(arr) and arr.shape == (16,) and ("conv2d/BiasAdd" in name or "sequential/conv2d/BiasAdd" in name):
+        convB = arr.copy()
+        save_bin("conv0_b", convB, np.int32)
+        continue
 
-    # ---- FC0: [16, 2704] ----
-    if arr.dtype == np.int8 and arr.shape == (16, 2704):
-        fc0_W = arr.copy()
-        save_tensor("fc0_W", fc0_W)
+    # -------------------- FC1 weights: want [Out, In] = [16, 2704] --------------------
+    if is_int8(arr) and arr.ndim == 2 and arr.size == 16*2704:
+        if arr.shape == (2704,16):       # [In,Out] -> transpose
+            fc1W = arr.T.copy()
+        elif arr.shape == (16,2704):     # [Out,In]
+            fc1W = arr.copy()
+        else:
+            # Make the axis with length 16 be 'Out'
+            fc1W = arr if arr.shape[0] == 16 else arr.T.copy()
+        save_bin("fc1_W", fc1W, np.int8)
+        continue
 
-    if arr.dtype == np.int32 and arr.shape == (16,) and "dense/BiasAdd" in name:
-        fc0_b = arr.copy()
-        save_tensor("fc0_b", fc0_b)
+    if is_int32(arr) and arr.shape == (16,) and ("dense/BiasAdd" in name or "dense_0/BiasAdd" in name):
+        fc1B = arr.copy()
+        save_bin("fc1_b", fc1B, np.int32)
+        continue
 
-    # ---- FC1: [10, 16] ----
-    if arr.dtype == np.int8 and arr.shape == (10, 16):
-        fc1_W = arr.copy()
-        save_tensor("fc1_W", fc1_W)
+    # -------------------- FC2 weights: want [Out, In] = [10, 16] --------------------
+    if is_int8(arr) and arr.ndim == 2 and arr.size == 10*16:
+        if arr.shape == (16,10):         # [In,Out] -> transpose
+            fc2W = arr.T.copy()
+        elif arr.shape == (10,16):       # [Out,In]
+            fc2W = arr.copy()
+        else:
+            fc2W = arr if arr.shape[0] == 10 else arr.T.copy()
+        save_bin("fc2_W", fc2W, np.int8)
+        continue
 
-    if arr.dtype == np.int32 and arr.shape == (10,) and "dense_1/BiasAdd" in name:
-        fc1_b = arr.copy()
-        save_tensor("fc1_b", fc1_b)
+    if is_int32(arr) and arr.shape == (10,) and ("dense_1/BiasAdd" in name):
+        fc2B = arr.copy()
+        save_bin("fc2_b", fc2B, np.int32)
+        continue
+
+print("\n[SUMMARY]")
+for n, v in (("conv0_W", convW), ("conv0_b", convB),
+             ("fc1_W",  fc1W),    ("fc1_b",  fc1B),
+             ("fc2_W",  fc2W),    ("fc2_b",  fc2B)):
+    print(f"{n:10s} ->", None if v is None else (v.shape, v.dtype))
+
 
 # %%
 # Save quantization info as JSON

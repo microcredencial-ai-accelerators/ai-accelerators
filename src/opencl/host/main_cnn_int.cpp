@@ -13,7 +13,7 @@
 #include <iomanip>
 #include <cmath>
 
-#include "quant_params_cnn_int.h"  // your auto-generated, identifier-safe header
+#include "quant_params_cnn_int.h"  // your identifier-safe header
 
 // ---------- Utilities ----------
 template<typename T>
@@ -71,7 +71,6 @@ reorder_fc1_columns_nhwc_to_nchw_i8(const std::vector<int8_t>& W1_src,
                 const int i_nchw = ((c * H) + h) * W + w_; // (c,h,w)
                 const int i_nhwc = ((h * W) + w_) * C + c; // (h,w,c)
                 for (int o = 0; o < Out; ++o){
-                    // column i is copied for all rows o
                     W1_dst[o * In + i_nchw] = W1_src[o * In + i_nhwc];
                 }
             }
@@ -94,39 +93,33 @@ int main(int argc, char** argv){
 
     // Shapes
     const int H0=28, W0=28, C0=1;
-    const int C1=16, H1=13, W1=13;
-    const int FC_IN = C1*H1*W1;   // 2704
+    const int C1=16, H1=13, W1=13;     // <- keep these names for spatial dims
+    const int FC_IN = C1*H1*W1;        // 2704
     const int FC_M  = 16;
     const int FC_O  = 10;
 
     // 1) Load INT8 weights / INT32 biases
-    // conv: [16,1,3,3], [16]
-    // fc1 : [16,2704], [16]   (rows=Out)
-    // fc2 : [10,16],   [10]
-    auto Wc0 = read_bin<int8_t >(wdir + "/conv0_W.bin");
-    auto bc0 = read_bin<int32_t>(wdir + "/conv0_b.bin");
-    auto W1  = read_bin<int8_t >(wdir + "/fc1_W.bin");
-    auto b1  = read_bin<int32_t>(wdir + "/fc1_b.bin");
-    auto W2  = read_bin<int8_t >(wdir + "/fc2_W.bin");
-    auto b2  = read_bin<int32_t>(wdir + "/fc2_b.bin");
+    auto Wc0  = read_bin<int8_t >(wdir + "/conv0_W.bin");
+    auto bc0  = read_bin<int32_t>(wdir + "/conv0_b.bin");
+    auto Wfc1 = read_bin<int8_t >(wdir + "/fc1_W.bin");   // <- renamed
+    auto b1   = read_bin<int32_t>(wdir + "/fc1_b.bin");
+    auto Wfc2 = read_bin<int8_t >(wdir + "/fc2_W.bin");   // <- renamed
+    auto b2   = read_bin<int32_t>(wdir + "/fc2_b.bin");
 
     if ((int)Wc0.size()!=C1*C0*3*3 ||
         (int)bc0.size()!=C1        ||
-        (int)W1 .size()!=FC_M*FC_IN||
-        (int)b1 .size()!=FC_M      ||
-        (int)W2 .size()!=FC_O*FC_M ||
-        (int)b2 .size()!=FC_O) {
+        (int)Wfc1.size()!=FC_M*FC_IN||
+        (int)b1.size()!=FC_M       ||
+        (int)Wfc2.size()!=FC_O*FC_M||
+        (int)b2.size()!=FC_O) {
       std::cerr << "[ERR] Weight sizes do not match the network.\n";
       return 1;
     }
 
-    // IMPORTANT: FC1 columns are NHWC by default (Flatten after Keras conv).
-    // Reorder to NCHW so it matches how conv features are laid out in memory.
-    // (Same transformation your FP32 app did, now for int8.)  (ref main_cnn_fp32.cpp)
-    // If your export already applied this, comment these two lines.
+    // FC1 columns NHWC -> NCHW (to match conv feature memory layout)
     {
-      std::vector<int8_t> W1_fixed = reorder_fc1_columns_nhwc_to_nchw_i8(W1, C1, H1, W1, FC_M);
-      W1.swap(W1_fixed);
+      std::vector<int8_t> W1_fixed = reorder_fc1_columns_nhwc_to_nchw_i8(Wfc1, C1, H1, W1, FC_M);
+      Wfc1.swap(W1_fixed);
     }
 
     // 2) Load raw images (uint8) and labels
@@ -145,7 +138,7 @@ int main(int argc, char** argv){
     }
     std::cout<<"[INFO] Batch: "<<N<<" images (u8).\n";
 
-    // 3) OpenCL: platform / device / context / queue  (same boilerplate as FP32 app)
+    // 3) OpenCL boilerplate
     cl_uint np=0; CL_CHECK(clGetPlatformIDs(0,nullptr,&np));
     std::vector<cl_platform_id> plats(np); CL_CHECK(clGetPlatformIDs(np, plats.data(), nullptr));
     cl_platform_id plat = plats.empty()? nullptr : plats[0];
@@ -160,7 +153,7 @@ int main(int argc, char** argv){
     cl_context ctx = clCreateContext(nullptr, 1, &dev, nullptr, nullptr, &err); CL_CHECK(err);
     cl_command_queue q = clCreateCommandQueue(ctx, dev, CL_QUEUE_PROFILING_ENABLE, &err); CL_CHECK(err);
 
-    // 4) Load .aocx and build program
+    // 4) Load .aocx and program
     auto aocx_vec = read_bytes_file(aocx_path);
     const unsigned char* bins[] = { aocx_vec.data() };
     size_t lens[] = { aocx_vec.size() };
@@ -172,64 +165,53 @@ int main(int argc, char** argv){
     cl_kernel k_conv = clCreateKernel(prg, "cnn16_conv_relu_pool_int8", &err); CL_CHECK(err);
     cl_kernel k_head = clCreateKernel(prg, "cnn16_head_fc_int8", &err);        CL_CHECK(err);
 
-    // 6) Constant buffers (weights/bias)
-    cl_mem dWc0 = make_ro_buffer(ctx, Wc0.size()*sizeof(int8_t),  Wc0.data(), &err); CL_CHECK(err);
-    cl_mem dBc0 = make_ro_buffer(ctx, bc0.size()*sizeof(int32_t), bc0.data(), &err); CL_CHECK(err);
-    cl_mem dW1  = make_ro_buffer(ctx, W1 .size()*sizeof(int8_t),  W1 .data(), &err); CL_CHECK(err);
-    cl_mem dB1  = make_ro_buffer(ctx, b1 .size()*sizeof(int32_t), b1 .data(), &err); CL_CHECK(err);
-    cl_mem dW2  = make_ro_buffer(ctx, W2 .size()*sizeof(int8_t),  W2 .data(), &err); CL_CHECK(err);
-    cl_mem dB2  = make_ro_buffer(ctx, b2 .size()*sizeof(int32_t), b2 .data(), &err); CL_CHECK(err);
+    // 6) Constant buffers
+    cl_mem dWc0  = make_ro_buffer(ctx, Wc0 .size()*sizeof(int8_t),  Wc0 .data(), &err); CL_CHECK(err);
+    cl_mem dBc0  = make_ro_buffer(ctx, bc0 .size()*sizeof(int32_t), bc0 .data(), &err); CL_CHECK(err);
+    cl_mem dWfc1 = make_ro_buffer(ctx, Wfc1.size()*sizeof(int8_t),  Wfc1.data(), &err); CL_CHECK(err);
+    cl_mem dB1   = make_ro_buffer(ctx, b1  .size()*sizeof(int32_t), b1  .data(), &err); CL_CHECK(err);
+    cl_mem dWfc2 = make_ro_buffer(ctx, Wfc2.size()*sizeof(int8_t),  Wfc2.data(), &err); CL_CHECK(err);
+    cl_mem dB2   = make_ro_buffer(ctx, b2  .size()*sizeof(int32_t), b2  .data(), &err); CL_CHECK(err);
 
-    // 7) Quant parameters (from your quant header)
-    // Input tensor (x0)
+    // 7) Quant params (from your header)
     const float X0_SCALE = serving_default_conv2d_input_0_scale;
     const int   X0_ZP    = serving_default_conv2d_input_0_zp;
 
-    // Conv weights & output (after pool)
     const float WC_SCALE = sequential_conv2d_Conv2D_scale;
     const int   WC_ZP    = sequential_conv2d_Conv2D_zp;
-    const float Y0_SCALE = sequential_max_pooling2d_MaxPool_scale;    // conv->relu->pool output
+    const float Y0_SCALE = sequential_max_pooling2d_MaxPool_scale; // conv->relu->pool output
     const int   Y0_ZP    = sequential_max_pooling2d_MaxPool_zp;
 
-    // FC1 (in: flatten Reshape, out: becomes in of FC2)
-    const float X1_SCALE = sequential_flatten_Reshape_scale;          // == Y0_SCALE
-    const int   X1_ZP    = sequential_flatten_Reshape_zp;             // == Y0_ZP
+    const float X1_SCALE = sequential_flatten_Reshape_scale;       // == Y0_SCALE
+    const int   X1_ZP    = sequential_flatten_Reshape_zp;          // == Y0_ZP
     const float W1_SCALE = sequential_dense_MatMul_scale;
     const int   W1_ZP    = sequential_dense_MatMul_zp;
 
-    // FC2 (logits)
     const float W2_SCALE  = sequential_dense_1_MatMul_scale;
     const int   W2_ZP     = sequential_dense_1_MatMul_zp;
     const float Y2_SCALE  = sequential_dense_1_MatMul_sequential_dense_1_BiasAdd_scale; // logits
     const int   Y2_ZP     = sequential_dense_1_MatMul_sequential_dense_1_BiasAdd_zp;
 
-    // Derive FC2 input scale from its bias scale: s_in_fc2 = bias2_scale / w2_scale
     const float B2_SCALE  = sequential_dense_1_BiasAdd_ReadVariableOp_scale;
-    const float X2_SCALE  = B2_SCALE / W2_SCALE;     // this is FC1 output activation scale
-    const int   X2_ZP     = -128;                    // typical TFLite activation zp
+    const float X2_SCALE  = B2_SCALE / W2_SCALE;    // FC2 input scale = FC1 output activation scale
+    const int   X2_ZP     = -128;                  // typical activation zp
 
-    // Sanity: FC1 bias scale should match X1_SCALE * W1_SCALE (it does in your header)
-    (void)sequential_dense_BiasAdd_ReadVariableOp_scale;
+    (void)sequential_dense_BiasAdd_ReadVariableOp_scale; // silence unused if present
 
-    // Integer requant multipliers
-    auto make_mult_shift = [](double M, int32_t& mult, int32_t& shift){
-        QuantizeMultiplier(M, mult, shift);
-    };
-    int32_t M0_mult, M0_shift; // conv
-    int32_t M1_mult, M1_shift; // fc1
-    int32_t M2_mult, M2_shift; // fc2
-    make_mult_shift( (double)X0_SCALE * (double)WC_SCALE / (double)Y0_SCALE, M0_mult, M0_shift );
-    make_mult_shift( (double)X1_SCALE * (double)W1_SCALE / (double)X2_SCALE, M1_mult, M1_shift );
-    make_mult_shift( (double)X2_SCALE * (double)W2_SCALE / (double)Y2_SCALE, M2_mult, M2_shift );
+    // 8) Compute integer requant multipliers
+    int32_t M0_mult, M0_shift, M1_mult, M1_shift, M2_mult, M2_shift;
+    QuantizeMultiplier((double)X0_SCALE * (double)WC_SCALE / (double)Y0_SCALE, M0_mult, M0_shift);
+    QuantizeMultiplier((double)X1_SCALE * (double)W1_SCALE / (double)X2_SCALE, M1_mult, M1_shift);
+    QuantizeMultiplier((double)X2_SCALE * (double)W2_SCALE / (double)Y2_SCALE, M2_mult, M2_shift);
 
-    // 8) Activation buffers
+    // 9) Activation buffers
     std::vector<int8_t> x_q(H0*W0), y_logits(FC_O);
     cl_int errc=CL_SUCCESS;
     cl_mem dX   = clCreateBuffer(ctx, CL_MEM_READ_ONLY,  sizeof(int8_t)*H0*W0, nullptr, &errc); CL_CHECK(errc);
     cl_mem dY13 = clCreateBuffer(ctx, CL_MEM_READ_WRITE, sizeof(int8_t)*C1*H1*W1, nullptr, &errc); CL_CHECK(errc);
     cl_mem dLOG = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY, sizeof(int8_t)*FC_O,    nullptr, &errc); CL_CHECK(errc);
 
-    // 9) Set static kernel args
+    // 10) Set static kernel args
     // conv
     int a=0;
     CL_CHECK(clSetKernelArg(k_conv, a++, sizeof(cl_mem), &dWc0));
@@ -242,18 +224,18 @@ int main(int argc, char** argv){
     CL_CHECK(clSetKernelArg(k_conv, a++, sizeof(cl_mem), &dX));
     CL_CHECK(clSetKernelArg(k_conv, a++, sizeof(cl_mem), &dY13));
 
-    // head
+    // head (order must match cnn16_head_fc_int8 signature)
     a=0;
-    CL_CHECK(clSetKernelArg(k_head, a++, sizeof(cl_mem), &dW1));
+    CL_CHECK(clSetKernelArg(k_head, a++, sizeof(cl_mem), &dWfc1));
     CL_CHECK(clSetKernelArg(k_head, a++, sizeof(cl_mem), &dB1));
     CL_CHECK(clSetKernelArg(k_head, a++, sizeof(int),    &W1_ZP));
     CL_CHECK(clSetKernelArg(k_head, a++, sizeof(int),    &M1_mult));
     CL_CHECK(clSetKernelArg(k_head, a++, sizeof(int),    &M1_shift));
     CL_CHECK(clSetKernelArg(k_head, a++, sizeof(int),    &X1_ZP));    // x1_zp = Y0_ZP
-    const int Y1_ZP = X2_ZP; // fc1 output zp = fc2 input zp (assume -128)
+    const int Y1_ZP = X2_ZP; // fc1 output zp = fc2 input zp
     CL_CHECK(clSetKernelArg(k_head, a++, sizeof(int),    &Y1_ZP));
 
-    CL_CHECK(clSetKernelArg(k_head, a++, sizeof(cl_mem), &dW2));
+    CL_CHECK(clSetKernelArg(k_head, a++, sizeof(cl_mem), &dWfc2));
     CL_CHECK(clSetKernelArg(k_head, a++, sizeof(cl_mem), &dB2));
     CL_CHECK(clSetKernelArg(k_head, a++, sizeof(int),    &W2_ZP));
     CL_CHECK(clSetKernelArg(k_head, a++, sizeof(int),    &M2_mult));
@@ -265,7 +247,7 @@ int main(int argc, char** argv){
     CL_CHECK(clSetKernelArg(k_head, a++, sizeof(cl_mem), &dY13));      // xin
     CL_CHECK(clSetKernelArg(k_head, a++, sizeof(cl_mem), &dLOG));      // out
 
-    // 10) Run per image: quantize input -> conv -> head -> read logits -> argmax
+    // 11) Run per image: quantize -> conv -> head -> read -> argmax
     size_t g=1;
     int correct=0;
     double sum_conv=0.0, sum_head=0.0, sum_tot=0.0;
@@ -275,7 +257,7 @@ int main(int argc, char** argv){
     for(int n=0; n<N; ++n){
       const uint8_t* raw = &Xraw[n*(H0*W0)];
 
-      // Normalize to [0,1] and quantize to int8 (your header uses 1/255)
+      // Normalize to [0,1] then quantize to int8
       for(int i=0;i<H0*W0;++i){
         float xf = float(raw[i]) / 255.0f;
         int qv = int(std::round(xf / X0_SCALE)) + X0_ZP;
@@ -299,7 +281,7 @@ int main(int argc, char** argv){
       // D2H logits
       CL_CHECK(clEnqueueReadBuffer(q, dLOG, CL_TRUE, 0, sizeof(int8_t)*FC_O, y_logits.data(), 0, nullptr, nullptr));
 
-      // Timings (ns -> ms)
+      // Timings
       cl_ulong c0s, c0e, c1s, c1e;
       clGetEventProfilingInfo(e0, CL_PROFILING_COMMAND_START, sizeof(c0s), &c0s, nullptr);
       clGetEventProfilingInfo(e0, CL_PROFILING_COMMAND_END,   sizeof(c0e), &c0e, nullptr);
@@ -338,9 +320,9 @@ int main(int argc, char** argv){
 
     // Cleanup
     clReleaseMemObject(dWc0); clReleaseMemObject(dBc0);
-    clReleaseMemObject(dW1 ); clReleaseMemObject(dB1 );
-    clReleaseMemObject(dW2 ); clReleaseMemObject(dB2 );
-    clReleaseMemObject(dX  ); clReleaseMemObject(dY13); clReleaseMemObject(dLOG);
+    clReleaseMemObject(dWfc1); clReleaseMemObject(dB1);
+    clReleaseMemObject(dWfc2); clReleaseMemObject(dB2);
+    clReleaseMemObject(dX);  clReleaseMemObject(dY13); clReleaseMemObject(dLOG);
     clReleaseKernel(k_conv); clReleaseKernel(k_head);
     clReleaseProgram(prg); clReleaseCommandQueue(q); clReleaseContext(ctx);
     return 0;
