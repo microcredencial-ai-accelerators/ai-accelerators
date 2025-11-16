@@ -1,0 +1,112 @@
+{
+    "serving_default_conv2d_input:0": {
+        "scale": 0.003921568859368563,
+        "zero_point": -128,
+        "shape": [
+            1,
+            28,
+            28,
+            1
+        ],
+        "dtype": "int8"
+    },
+    "sequential/flatten/Const": {
+        "scale": 1.0,
+        "zero_point": 0,
+        "shape": [
+            2
+        ],
+        "dtype": "int32"
+    },
+    "sequential/dense_1/BiasAdd/ReadVariableOp": {
+        "scale": 0.0005364386015571654,
+        "zero_point": 0,
+        "shape": [
+            10
+        ],
+        "dtype": "int32"
+    },
+    "sequential/dense_1/MatMul": {
+        "scale": 0.008457887917757034,
+        "zero_point": 0,
+        "shape": [
+            10,
+            16
+        ],
+        "dtype": "int8"
+    },
+    "sequential/dense/BiasAdd/ReadVariableOp": {
+        "scale": 3.6407240258995444e-05,
+        "zero_point": 0,
+        "shape": [
+            16
+        ],
+        "dtype": "int32"
+    },
+    "sequential/dense/MatMul": {
+        "scale": 0.005849662236869335,
+        "zero_point": 0,
+        "shape": [
+            16,
+            2704
+        ],
+        "dtype": "int8"
+    },
+    "sequential/conv2d/BiasAdd/ReadVariableOp": {
+        "scale": 6.74982175041805e-06,
+        "zero_point": 0,
+        "shape": [
+            16
+        ],
+        "dtype": "int32"
+    },
+    "sequential/conv2d/Conv2D": {
+        "scale": 0.0017212044913321733,
+        "zero_point": 0,
+        "shape": [
+            16,
+            3,
+            3,
+            1
+        ],
+        "dtype": "int8"
+    },
+    "sequential/max_pooling2d/MaxPool": {
+        "scale": 0.0062238192185759544,
+        "zero_point": -128,
+        "shape": [
+            1,
+            13,
+            13,
+            16
+        ],
+        "dtype": "int8"
+    },
+    "sequential/flatten/Reshape": {
+        "scale": 0.0062238192185759544,
+        "zero_point": -128,
+        "shape": [
+            1,
+            2704
+        ],
+        "dtype": "int8"
+    },
+    "sequential/dense_1/MatMul;sequential/dense_1/BiasAdd": {
+        "scale": 0.17045029997825623,
+        "zero_point": 19,
+        "shape": [
+            1,
+            10
+        ],
+        "dtype": "int8"
+    },
+    "StatefulPartitionedCall:0": {
+        "scale": 0.00390625,
+        "zero_point": -128,
+        "shape": [
+            1,
+            10
+        ],
+        "dtype": "int8"
+    }
+}

@@ -98,14 +98,14 @@ File: src/opencl/kernels/cnn_fp32.cl
 Goal: Complete CNN kernel implementation with the FC layers and the ReLU functions
 
 ## Compile both kernels
-List the available boards and export the "BOARD" variabl: 
+List the available boards and export the "BOARD" variable: 
 ```
 aoc -list-boards
 export BOARD=de10_nano_sharedonly
 ```
 Compile the kernel for FPGA using the Intel FPGA SDK for OpenCL (aoc):
 ```
-aoc -v -g -board=$BOARD src/opencl/kernels/fc_fp32.cl -o output/fc_fp32.aocx​
+aoc -v -g -report -board=$BOARD src/opencl/kernels/fc_fp32.cl -o output/fc_fp32.aocx​
 ```
 ```
 aoc: Environment checks are completed successfully.
