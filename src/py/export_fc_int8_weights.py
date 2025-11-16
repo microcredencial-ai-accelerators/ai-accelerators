@@ -82,7 +82,7 @@ with open(OUTPUT_PATH / "quant_params.json", "w") as f:
 
 # Function to sanitize tensor names for C macros
 def sanitize_name(name):
-    name = name.replace("/", "_").replace("-", "_").replace(";", "_")
+    name = name.replace("/", "_").replace("-", "_").replace(";", "_").replace(":", "_")
     return name.upper()
 # Open header for writing
 with open(OUTPUT_PATH / f"quant_params_{model_type}_int.h", "w") as f:
