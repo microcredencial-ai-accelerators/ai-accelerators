@@ -15,11 +15,11 @@
 % matlab -nodesktop -nosplash -nodesktop -r "build_custom_board"
 
 optimize_dlprocessor_to_nn = false;
-precision = 'single'; % 'sinole' or 'int0'
+precision = 'single'; % 'single' or 'int8'
 
 addpath(genpath('boards'))
 
-% Create the processor configuration object
+%% Create the processor configuration object
 hPC = dlhdl.ProcessorConfig();
 hPC.setModuleProperty("conv","ConvThreadNumber",4)
 hPC.setModuleProperty("conv","InputMemorySize",[28 28 1])
@@ -60,14 +60,14 @@ end
 %% Define board
 hPC.TargetPlatform = 'Terasic DE10-Nano SoC';
 
-% Add the synthesis tool to the MATLAB path. Uncomment the line below and
+%% Add the synthesis tool to the MATLAB path. Uncomment the line below and
 % provide the correct path.
 quartus_path = strcat(getenv("QUARTUS_ROOTDIR"), "/bin/quartus");
 % quartus_path = '/opt/FPGA/Intel/intelFPGA/21.1std/quartus/bin/quartus'
 
 hdlsetuptoolpath('ToolName', 'Altera Quartus II','ToolPath', quartus_path);
 
-% Create workflow config object
+%% Create workflow config object
 hWC = hdlcoder.WorkflowConfig('SynthesisTool', hPC.SynthesisTool,'TargetWorkflow','Deep Learning Processor');
 hWC.RunTaskGenerateRTLCodeAndIPCore = true;
 hWC.RunTaskCreateProject = true;

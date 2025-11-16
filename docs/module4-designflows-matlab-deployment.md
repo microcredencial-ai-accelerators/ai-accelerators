@@ -38,6 +38,7 @@ For JTAG mode:
 export PATH=/opt/FPGA/Intel/intelFPGA/21.1std/quartus/bin:$PATH
 export LD_LIBRARY_PATH=/opt/FPGA/Intel/intelFPGA/21.1std/quartus/linux64:$LD_LIBRARY_PATH
 ```
+---
 
 ## 1.SD Card Preparation
 
