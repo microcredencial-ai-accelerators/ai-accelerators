@@ -18,7 +18,7 @@ Before you start, ensure that the following software and packages are **installe
 - **[Deep Learning HDL Toolbox Support Package for Intel FPGA and SoC Devices](https://es.mathworks.com/hardware-support/deep-learning-intel-fpga.html)**
 - **xterm** (for Linux users)
 
-> MATLAB version used: **R2025a**  
+> MATLAB version used: **R2025b**  
 > Target platform: **Intel® Arria® 10 / Terasic DE10-Nano SoC**
 
 ---
@@ -107,7 +107,7 @@ hPC.UseVendorLibrary = 'off';
 ```
 ## Step 3. Define the Target Platform
 ```matlab
-PC.TargetPlatform = 'Terasic DE10-Nano SoC';
+hPC.TargetPlatform = 'Terasic DE10-Nano SoC';
 
 % Specify the Quartus installation path
 quartus_path = '/opt/FPGA/Intel/intelFPGA/21.1std/quartus/bin/quartus';

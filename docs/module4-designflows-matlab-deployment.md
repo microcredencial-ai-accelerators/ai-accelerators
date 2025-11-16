@@ -8,11 +8,15 @@ The process includes model import, FPGA bitstream configuration, network deploym
 
 The following software components must be installed before running the deployment:
 - MATLAB
-- Deep Learning HDL Toolbox
-- Deep Learning Toolbox Converter for TensorFlow Models
-- Deep Learning HDL Toolbox Support Package for Intel FPGA and SoC Devices
+- **[Deep Learning Toolbox](https://mathworks.com/products/deep-learning.html)**
+- **[Deep Learning HDL Toolbox](https://mathworks.com/products/deep-learning-hdl.html)**
+- **[Deep Learning Toolbox Converter for TensorFlow Models](https://mathworks.com/matlabcentral/fileexchange/64649-deep-learning-toolbox-converter-for-tensorflow-models)**
+- **[Deep Learning HDL Toolbox Support Package for Intel FPGA and SoC Devices](https://es.mathworks.com/hardware-support/deep-learning-intel-fpga.html)**
 Reference:
 [MathWorks: Get Started with Deep Learning FPGA Deployment to Intel Arria 10 SoC](https://mathworks.com/help/deep-learning-hdl/ug/get-started-with-deepl-learning-fpga-deployment-to-intel-arria10-soc.html)
+
+> MATLAB version used: **R2025b**
+> Target platform: **Intel® Arria® 10**
 
 ## Hardware Setup
 

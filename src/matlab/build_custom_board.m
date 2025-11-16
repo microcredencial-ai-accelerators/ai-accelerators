@@ -12,29 +12,12 @@
 % xterm
 % https://es.mathworks.com/matlabcentral/answers/1939799-deep-learning-hdl-toolbox-de10-standard
 
-% matlab2024b -nodesktop -nosplash -nodesktop -r "build_custom_board"
+% matlab -nodesktop -nosplash -nodesktop -r "build_custom_board"
 
-optimize_dlprocessor_to_nn = true;
+optimize_dlprocessor_to_nn = false;
 precision = 'single'; % 'sinole' or 'int0'
 
 addpath(genpath('boards'))
-
-%% Load model 
-model_path='saved_models/mnist_fc/model.h5'
-net = importKerasNetwork(model_path);
-info = analyzeNetwork(net)
-% Classification output
-correctClasses = string(0:9);
-% Get original layers
-layers = net.Layers;
-newClassificationLayer = classificationLayer('Classes', categorical(correctClasses), 'Name', 'output');
-
-% Replace output layer
-layers(end) = newClassificationLayer;
-
-% Assemply Network with modified output layer
-net = assembleNetwork(layers);
-info = analyzeNetwork(net)
 
 % Create the processor configuration object
 hPC = dlhdl.ProcessorConfig();
@@ -49,6 +32,23 @@ hPC.setModuleProperty("fc","OutputMemorySize",1024)
 hPC.TargetFrequency=50; % Cyclone V SoC
 
 if optimize_dlprocessor_to_nn
+  %% Load model 
+  model_path='saved_models/mnist_fc/model.h5'
+  net = importKerasNetwork(model_path);
+  info = analyzeNetwork(net)
+  % Classification output
+  correctClasses = string(0:9);
+  % Get original layers
+  layers = net.Layers;
+  newClassificationLayer = classificationLayer('Classes', categorical(correctClasses), 'Name', 'output');
+
+  % Replace output layer
+  layers(end) = newClassificationLayer;
+
+  % Assemply Network with modified output layer
+  net = assembleNetwork(layers);
+  info = analyzeNetwork(net)
+
   hPC.optimizeConfigurationForNetwork(net);
 end
 
