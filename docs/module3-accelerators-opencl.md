@@ -5,6 +5,8 @@
 This lab introduces OpenCL programming on Intel FPGAs using the Intel FPGA SDK for OpenCL.
 You will learn the basics of OpenCL concepts, how to write and compile kernels for FPGA, and how to analyze performance using Quartus reports.
 
+---
+
 ## OpenCL Basics
 
 An OpenCL application is divided into two parts:
