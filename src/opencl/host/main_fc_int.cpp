@@ -29,7 +29,6 @@ std::vector<T> read_bin(const std::string& path){
     f.read(reinterpret_cast<char*>(v.data()), nbytes);
     return v;
 }
-
 std::vector<unsigned char> read_bytes_file(const std::string& path){
     std::ifstream f(path, std::ios::binary);
     if(!f) throw std::runtime_error("No aocx: " + path);
@@ -39,12 +38,23 @@ std::vector<unsigned char> read_bytes_file(const std::string& path){
     f.read(reinterpret_cast<char*>(b.data()), n);
     return b;
 }
-
 cl_mem make_ro_buffer(cl_context ctx, size_t nbytes, const void* host, cl_int* err){
     return clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, nbytes, const_cast<void*>(host), err);
 }
 #define CL_CHECK(x) do{ cl_int _e=(x); if(_e!=CL_SUCCESS){ \
   std::cerr << "OpenCL err " << _e << " @ " << __FILE__ << ":" << __LINE__ << "\n"; std::exit(1);} }while(0)
+
+// ---------- Integer requant: convert real M into (mult, shift) ----------
+static inline void QuantizeMultiplier(double M, int32_t& mult, int32_t& shift) {
+    if (M <= 0.0) { mult = 0; shift = 0; return; }
+    int exp;
+    const double norm = std::frexp(M, &exp);      // M = norm * 2^exp, norm in [0.5,1)
+    long long q31 = (long long)std::llround(norm * (1ll<<31)); // [2^30, 2^31]
+    if (q31 == (1ll<<31)) { q31 >>= 1; ++exp; }   // handle rare round-up
+    mult = (int32_t)q31;                          // Q31 multiplier
+    shift = 31 - exp;                             // keep shift >= 0
+    if (shift < 0) { mult <<= (-shift); shift = 0; }
+}
 
 int main(int argc, char** argv){
   try{
@@ -53,16 +63,13 @@ int main(int argc, char** argv){
     // 2: images_u8.bin (N*784 bytes)
     // 3: labels.bin (N bytes)
     // 4: weights_dir
-    const std::string aocx_path = (argc>1? argv[1] : "opencl/kernels/fc_int8.aocx");
+    const std::string aocx_path = (argc>1? argv[1] : "opencl/kernels/fc_int.aocx");
     const std::string imgs_bin  = (argc>2? argv[2] : "opencl/data/test_images_u8.bin");
     const std::string labs_bin  = (argc>3? argv[3] : "opencl/data/test_labels.bin");
     const std::string wdir      = (argc>4? argv[4] : "weights/fc_int8");
 
     // Network: 784 -> 64 -> 32 -> 10
-    const int in_dim  = 784;
-    const int h1      = 64;
-    const int h2      = 32;
-    const int out_dim = 10;
+    const int in_dim  = 784, h1=64, h2=32, out_dim=10;
 
     // 1) Load INT8 weights / INT32 biases (stored as [Out, In])
     auto W0 = read_bin<int8_t >(wdir + "/fc0_W.bin");
@@ -71,7 +78,6 @@ int main(int argc, char** argv){
     auto b1 = read_bin<int32_t>(wdir + "/fc1_b.bin");
     auto W2 = read_bin<int8_t >(wdir + "/fc2_W.bin");
     auto b2 = read_bin<int32_t>(wdir + "/fc2_b.bin");
-
     if ((int)W0.size()!=h1*in_dim || (int)b0.size()!=h1 ||
         (int)W1.size()!=h2*h1    || (int)b1.size()!=h2 ||
         (int)W2.size()!=out_dim*h2 || (int)b2.size()!=out_dim) {
@@ -82,13 +88,13 @@ int main(int argc, char** argv){
     // 2) Load raw images (uint8) and labels
     std::ifstream fu(imgs_bin, std::ios::binary);
     if(!fu){ std::cerr<<"[ERR] Unable to open "<<imgs_bin<<"\n"; return 1; }
-    fu.seekg(0, std::ios::end); size_t ib = size_t(fu.tellg()); fu.seekg(0, std::ios::beg); // <- fixed
+    fu.seekg(0, std::ios::end); size_t ib = size_t(fu.tellg()); fu.seekg(0, std::ios::beg);
     if(ib % (28*28) != 0){ std::cerr<<"[ERR] "<<imgs_bin<<" not x784 bytes\n"; return 1; }
     const int N = int( ib / (28*28) );
     std::vector<uint8_t> Xraw(N*in_dim);
     fu.read(reinterpret_cast<char*>(Xraw.data()), ib);
 
-    auto Lall = read_bin<uint8_t>(labs_bin); // keep ONLY this declaration
+    auto Lall = read_bin<uint8_t>(labs_bin);
     if ((int)Lall.size()!=N){
       std::cerr<<"[ERR] labels size ("<<Lall.size()<<") does not match images ("<<N<<")\n";
       return 1;
@@ -148,46 +154,54 @@ int main(int argc, char** argv){
     const float L2_W_SCALE   = SEQUENTIAL_2_DENSE_8_MATMUL_SCALE;
     const int   L2_W_ZP      = SEQUENTIAL_2_DENSE_8_MATMUL_ZERO_POINT;
 
-    // Scalar requantization multipliers (per layer)
-    const float M0 = (INPUT_SCALE * L0_W_SCALE) / L0_OUT_SCALE;
-    const float M1 = (L0_OUT_SCALE * L1_W_SCALE) / L1_OUT_SCALE;
-    const float M2 = (L1_OUT_SCALE * L2_W_SCALE) / L2_OUT_SCALE;
+    // 8) Compute integer requant multipliers
+    double M0_f = (double)INPUT_SCALE * (double)L0_W_SCALE / (double)L0_OUT_SCALE;
+    double M1_f = (double)L0_OUT_SCALE * (double)L1_W_SCALE / (double)L1_OUT_SCALE;
+    double M2_f = (double)L1_OUT_SCALE * (double)L2_W_SCALE / (double)L2_OUT_SCALE;
 
-    // 8) IO buffers
+    int32_t M0_mult, M0_shift, M1_mult, M1_shift, M2_mult, M2_shift;
+    QuantizeMultiplier(M0_f, M0_mult, M0_shift);
+    QuantizeMultiplier(M1_f, M1_mult, M1_shift);
+    QuantizeMultiplier(M2_f, M2_mult, M2_shift);
+
+    // 9) IO buffers
     std::vector<int8_t> x_q(in_dim), y_q(out_dim);
     cl_mem dX = clCreateBuffer(ctx, CL_MEM_READ_ONLY,  sizeof(int8_t)*in_dim,  nullptr, &err); CL_CHECK(err);
     cl_mem dY = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY, sizeof(int8_t)*out_dim, nullptr, &err); CL_CHECK(err);
 
-    // 9) Set static kernel args (must match fc_64x32_infer_int8 signature)
+    // 10) Set static kernel args (match fc_64x32_infer_int8)
     int a=0;
     // L0
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(cl_mem),  &dW0));
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(cl_mem),  &dB0));
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L0_W_ZP));
-    CL_CHECK(clSetKernelArg(krn, a++, sizeof(float),   &M0));
-    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &INPUT_ZP));
-    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L0_OUT_ZP));
+    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &M0_mult));
+    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &M0_shift));
+    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &INPUT_ZP));   // x0_zp
+    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L0_OUT_ZP));  // y0_zp
     // L1
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(cl_mem),  &dW1));
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(cl_mem),  &dB1));
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L1_W_ZP));
-    CL_CHECK(clSetKernelArg(krn, a++, sizeof(float),   &M1));
-    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L0_OUT_ZP)); // x1_zp
-    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L1_OUT_ZP)); // y1_zp
+    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &M1_mult));
+    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &M1_shift));
+    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L0_OUT_ZP));  // x1_zp
+    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L1_OUT_ZP));  // y1_zp
     // L2
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(cl_mem),  &dW2));
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(cl_mem),  &dB2));
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L2_W_ZP));
-    CL_CHECK(clSetKernelArg(krn, a++, sizeof(float),   &M2));
-    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L1_OUT_ZP)); // x2_zp
-    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L2_OUT_ZP)); // y2_zp
+    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &M2_mult));
+    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &M2_shift));
+    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L1_OUT_ZP));  // x2_zp
+    CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &L2_OUT_ZP));  // y2_zp
     // IO + sizes
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(cl_mem),  &dX));
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(cl_mem),  &dY));
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &in_dim));
     CL_CHECK(clSetKernelArg(krn, a++, sizeof(int),     &out_dim));
 
-    // 10) Run per image: normalize -> quantize -> run -> read -> argmax
+    // 11) Run per image: normalize -> quantize -> run -> read -> argmax
     size_t g=1;
     int correct=0;
     double sum_ms = 0.0, min_ms=1e100, max_ms=0.0;
