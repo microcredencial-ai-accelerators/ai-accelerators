@@ -3,6 +3,8 @@
 
 This section explains how to deploy, run, and measure performance of your OpenCL kernels (Fully Connected and CNN models) on the DE10-Nano SoC board using the Intel FPGA SDK for OpenCL runtime.
 
+---
+
 ## 1. Export Model Weights
 Before running the models on FPGA, export trained model weights from your TensorFlow/Keras models using the provided Python scripts:
 ```
