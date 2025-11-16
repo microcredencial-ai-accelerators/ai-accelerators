@@ -1,17 +1,34 @@
 #!/bin/bash
 
-# Usage: ./run_fc.sh [APP] [KERNEL] [WEIGHTS]
+# Usage: ./run_deploy.sh [APP] [KERNEL] [WEIGHTS_DIR]
 
-# Default paths (change if needed)
 APP=${1:-"opencl/apps/fc_fp32_host"}
 KERNEL=${2:-"opencl/kernels/fc_fp32.aocx"}
-WEIGHTS=${3:-"opencl/weights/fc_fp32"}
+WEIGHTS_DIR=${3:-"opencl/weights/fc_fp32"}
 
-# Fixed data files
 IMAGES="opencl/data/test_images_u8.bin"
 LABELS="opencl/data/test_labels.bin"
 
-# Run the application
-echo "Running $APP with kernel $KERNEL and weights $WEIGHTS..."
-$APP $KERNEL $IMAGES $LABELS $WEIGHTS
-  opencl/weights/fc_fp32
+# Check if files exist
+if [ ! -f "$APP" ]; then
+    echo "Error: application '$APP' not found!"
+    exit 1
+fi
+
+if [ ! -f "$KERNEL" ]; then
+    echo "Error: kernel '$KERNEL' not found!"
+    exit 1
+fi
+
+if [ ! -d "$WEIGHTS_DIR" ]; then
+    echo "Error: weights directory '$WEIGHTS_DIR' not found!"
+    exit 1
+fi
+
+# Display options
+echo "Running $APP"
+echo "Kernel: $KERNEL"
+echo "Weights directory: $WEIGHTS_DIR"
+
+# Run App
+$APP $KERNEL $IMAGES $LABELS "$WEIGHTS_DIR"
