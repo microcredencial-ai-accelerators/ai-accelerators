@@ -214,7 +214,7 @@ When training a neural network, several key components define how the model lear
 OPTIMIZER = 'adam'
 LOSS_FUNCTION = 'categorical_crossentropy'
 METRICS = ['accuracy']
-EPOCS = 5
+EPOCHS = 5
 
 model.compile(optimizer=OPTIMIZER,
               loss=LOSS_FUNCTION,
@@ -256,7 +256,7 @@ Train model with ``fit`` class:
 history = model.fit(train_data, train_labels, epochs=EPOCHS, validation_data=(test_data, test_labels))
 ```
 
-### Plot Loss and accuraty evolution
+### Plot Loss and accuracy evolution
 ```python
 # Plot the evolution of loss and accuracy
 plt.figure(figsize=(12, 5))
