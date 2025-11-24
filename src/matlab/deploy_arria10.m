@@ -35,7 +35,7 @@ layers(end) = newClassificationLayer;
 net = assembleNetwork(layers);
 info = analyzeNetwork(net)
 
-interface = "Ethernet"
+interface = "JTAG"
 
 if strcmp(interface , "JTAG")
     % If multiple Quartus instances, MATLAB cannot find the correct applications
@@ -94,6 +94,7 @@ for i = 1:numSamples
     % Prediction index
     [~, pred_idx] = max(prediction);
     pred_idx = pred_idx - 1; % MATLAB starting index is 1
+    pred_label = pred_idx;
 
     true_label = test_labels(i);
 
