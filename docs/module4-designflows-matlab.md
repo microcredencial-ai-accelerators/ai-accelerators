@@ -18,7 +18,7 @@ Before you start, ensure that the following software and packages are **installe
 - **[Deep Learning HDL Toolbox Support Package for Intel FPGA and SoC Devices](https://es.mathworks.com/hardware-support/deep-learning-intel-fpga.html)**
 - **xterm** (for Linux users)
 
-> MATLAB version used: **R2025b**  
+> MATLAB version used: **R2024b**  
 > Target platform: **Intel® Arria® 10 / Terasic DE10-Nano SoC**
 
 ---
@@ -135,4 +135,4 @@ This command:
 2. Builds the FPGA bitstream (if enabled).
 
 ## Step 6. Bitstream
-'.bin' file will be generated with dlprocessor bitstream.
+'dlprocessor.mat' file will be generated with dlprocessor bitstream into the 'dlhdl_prj' directory.
