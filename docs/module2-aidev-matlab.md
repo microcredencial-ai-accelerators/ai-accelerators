@@ -26,7 +26,7 @@ The following software components must be installed before running the deploymen
 - MATLAB (MATLAB Online version can be used)
 - **[Deep Learning Toolbox](https://mathworks.com/products/deep-learning.html)**
 
-> MATLAB version used: **R2025b**
+> MATLAB version used: **R2024b**
 
 ---
 

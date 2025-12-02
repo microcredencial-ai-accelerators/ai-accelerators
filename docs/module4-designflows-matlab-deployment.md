@@ -15,7 +15,7 @@ The following software components must be installed before running the deploymen
 Reference:
 [MathWorks: Get Started with Deep Learning FPGA Deployment to Intel Arria 10 SoC](https://mathworks.com/help/deep-learning-hdl/ug/get-started-with-deepl-learning-fpga-deployment-to-intel-arria10-soc.html)
 
-> MATLAB version used: **R2025b**
+> MATLAB version used: **R2024b**
 > Target platform: **Intel® Arria® 10**
 
 ## Hardware Setup
