@@ -1,0 +1,5 @@
+theme: jekyll-theme-leap-day
+show_downloads: false
+baseurl: "/ai-accelerators"
+github:
+  is_project_page: false
