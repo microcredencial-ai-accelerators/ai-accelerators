@@ -1,6 +1,2 @@
-theme:
-  name: material
-  palette:
-    primary: indigo
-    accent: blue
+theme: jekyll-theme-midnight
 baseurl: "/ai-accelerators"
