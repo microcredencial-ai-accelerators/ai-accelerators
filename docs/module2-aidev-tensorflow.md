@@ -18,11 +18,81 @@ By the end of this module, you will be able to:
 - Export and reload trained models for inference
 
 ## Requirements:
-- Python3 >=3.7
+- Python3 ==3.10
+1. Check Python version
 
-TensorFlow provides a simple and efficient way to load the MNIST dataset directly in Python, without needing to manually download and parse the raw IDX files.
+```python3 --versions```
+
+If the version is Python 3.10.x, you can proceed directly to installation inside a virtual environment.
+
+If not, you must create a virtual environment with Python 3.10 (see [Python 3.10 Installation Guide](#python-310-installation-guide-ai-dev-virtual-machine-setup).
+
+## Python 3.10 Installation Guide (ai-dev Virtual Machine Setup) 
+TensorFlow 2.11 requires **Python 3.10**. It is not compatible with Python 3.11 or 3.12.
+Temporarily disable LD_LIBRARY_PATH:
+```bash
+unset LD_LIBRARY_PATH
+```
+### 1. System update and prerequisites
+First, update the system and install required tools:
+
+```bash
+sudo apt update
+sudo apt install -y software-properties-common curl build-essential
+```
+### 2. Add Python 3.10 repository (required on Ubuntu 22.04/24.04)
+
+Python 3.10 is not available by default in newer Ubuntu versions, so we use the Deadsnakes PPA:
+```bash
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+```
+### 3. Install Python 3.10
+
+Install Python 3.10 and its development tools:
+
+```bash
+sudo apt install -y python3.10 python3.10-venv python3.10-dev pipenv
+```
+Verify installation:
+```bash
+python3.10 --version
+```
+Expected output:
+```bash
+Python 3.10.x
+```
+
+### 4. Create a virtual environment (MANDATORY)
+
+Even if Python 3.10 is installed, you MUST use a virtual environment to avoid breaking system Python.
+```bash
+cd ~/ai-accelerators (your work directory)
+
+python3.10 -m venv venv
+source venv/bin/activate
+```
+or 
+```bash
+cd ~/ai-accelerators (your work directory)
+
+pipenv shell
+```
+After activation, your prompt should look like:
+```bash
+(venv) user@machine:~/repositories/ai-accelerators$
+```
+### 5. Ensure you are inside the virtual environment
+```bash
+which python
+```
+Expected:
+```bash
+.../venv/bin/python
+```
 
 ## Required Python Packages
+TensorFlow provides a simple and efficient way to load the MNIST dataset directly in Python, without needing to manually download and parse the raw IDX files.
 
 Make sure you have the following packages installed:
 
@@ -33,7 +103,7 @@ Make sure you have the following packages installed:
 
 You can install them using pip:
 
-```pip install tensorflow tensorflow-datasets```
+```pip install tensorflow tensorflow-datasets```V
 
 or using the provided ```requirements.txt``` file:
 ```pip install -r requirements.txt```
