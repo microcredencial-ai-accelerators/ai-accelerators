@@ -50,12 +50,12 @@ Kernels are written in OpenCL C and compiled with aoc into an FPGA bitstream (.a
 project_root/
 ├── src/
 │   └── opencl/
-│   │   └── kernels/
-│   │       ├── fc_fp32.cl
-│   │       └── cnn_fp32.cl
-│   └── host/
-|       ├── main_fc_fp32.cpp
-│       └── main_cnn_fp32.cpp
+│       └── kernels/
+│       │   ├── fc_fp32.cl
+│       │   └── cnn_fp32.cl
+│       └── host/
+|           ├── main_fc_fp32.cpp
+│           └── main_cnn_fp32.cpp
 └── output/
     ├── fc_fp32/
     └── cnn_fp32/
