@@ -148,15 +148,33 @@ opencl
 Transfer data to the SD card. You can use minicom with xmodem or SD card copy.
 ### Option 1: Using tar.gz and minicom
 
-On your PC:
+1. Create a compressed archive on your PC:
 ```
 tar czvf opencl.tar.gz opencl/
 ```
-In minicom (on the DE10-Nano terminal):
+2. Start receiving on the target board (DE10-Nano). On the DE10-Nano terminal (inside minicom), run:
 ```
 rx opencl_deploy.tar.gz
 ```
-Then extract on the board:
+This command prepares the board to receive the file via XMODEM.
+3. Send the file from Minicom (on your PC)
+While inside minicom:
+```
+Ctrl + A
+```
+Then press:
+```
+s
+```
+This opens the “Send file” menu.
+4. Select transfer protocol. From the menu Choose xmodem
+5. Select the file to send
+Navigate and select:
+```
+opencl_deploy.tar.gz
+```
+Wait until transfer is finished.
+6. Then extract on the board:
 ```
 tar xzvf opencl_deploy.tar.gz
 ```
